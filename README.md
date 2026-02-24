@@ -195,8 +195,7 @@ Contributions are welcome! Feel free to open issues for bugs or feature requests
 
 If you enjoy SimSync, consider supporting development:
 
-- [Ko-fi](https://ko-fi.com/simsync)
-- [Buy Me a Coffee](https://buymeacoffee.com/simsync)
+- [Buy Me a Coffee](https://www.buymeacoffee.com/stixe)
 
 ---
 

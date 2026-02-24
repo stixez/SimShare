@@ -1,4 +1,4 @@
-import { X, Heart, Coffee } from "lucide-react";
+import { X, Coffee } from "lucide-react";
 import { useAppStore } from "../stores/useAppStore";
 import { open } from "@tauri-apps/plugin-shell";
 
@@ -22,17 +22,7 @@ export default function DonateModal() {
         </p>
         <div className="space-y-3">
           <button
-            onClick={() => open("https://ko-fi.com/simsync").catch(() => {})}
-            className="w-full flex items-center gap-3 bg-[#FF5E5B]/10 hover:bg-[#FF5E5B]/20 border border-[#FF5E5B]/30 rounded-xl px-4 py-3 transition-colors text-left"
-          >
-            <Heart size={20} className="text-[#FF5E5B]" />
-            <div>
-              <p className="text-sm font-medium">Ko-fi</p>
-              <p className="text-xs text-txt-dim">Buy me a coffee</p>
-            </div>
-          </button>
-          <button
-            onClick={() => open("https://buymeacoffee.com/simsync").catch(() => {})}
+            onClick={() => open("https://www.buymeacoffee.com/stixe").catch(() => {})}
             className="w-full flex items-center gap-3 bg-status-yellow/10 hover:bg-status-yellow/20 border border-status-yellow/30 rounded-xl px-4 py-3 transition-colors text-left"
           >
             <Coffee size={20} className="text-status-yellow" />
