@@ -20,12 +20,13 @@
 
 SimSync is a free, open-source desktop app that lets you and your friends share Sims 4 mods, custom content, and save files directly over your local network. No accounts, no file size limits, no waiting for uploads — just connect and sync.
 
-**How it works:** One person hosts a session, the other joins. SimSync compares both mod folders, shows you exactly what's different, and lets you choose what to sync. Files transfer directly between your computers at LAN speed.
+**How it works:** One person hosts a session, and one or more friends join. SimSync compares mod folders, shows you exactly what's different, and lets you choose what to sync. Files transfer directly between your computers at LAN speed.
 
 ---
 
 ## Features
 
+- **Multi-peer sync** — One host, multiple clients. Everyone syncs independently at the same time.
 - **Peer-to-peer sync** — Files transfer directly between computers. Nothing is uploaded anywhere.
 - **Auto-discovery** — SimSync finds other users on your network automatically via mDNS.
 - **Smart diffing** — Only syncs files that are actually different. Identical files are skipped.
@@ -34,6 +35,7 @@ SimSync is a free, open-source desktop app that lets you and your friends share 
 - **File integrity** — Every transferred file is verified with SHA-256 checksums.
 - **Real-time progress** — Watch sync progress with file counts and a progress bar.
 - **Activity log** — See everything that happens: connections, transfers, errors.
+- **Host controls** — Kick individual peers from your session at any time.
 - **Cross-platform** — Works on Windows, macOS (Intel & Apple Silicon), and Linux.
 
 ---
@@ -172,7 +174,7 @@ A: SimSync works with any Sims 4 installation that has a standard Mods and Saves
 A: Individual files up to 2 GB are supported. There's no limit on total sync size.
 
 **Q: Can more than two people sync at once?**
-A: Currently SimSync supports one-to-one connections. Multi-peer sync is planned for a future release.
+A: Yes! One person hosts and multiple friends can join simultaneously. Each client syncs independently with the host.
 
 **Q: Does it sync tray files?**
 A: SimSync syncs `.package` files (mods/CC) and save files from the Saves folder. Tray files are not currently included.
