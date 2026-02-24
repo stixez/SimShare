@@ -1,0 +1,54 @@
+import { AlertTriangle } from "lucide-react";
+import type { FileInfo, Resolution } from "../lib/types";
+import { formatBytes } from "../lib/utils";
+
+interface ConflictResolverProps {
+  localFile: FileInfo;
+  remoteFile: FileInfo;
+  onResolve: (resolution: Resolution) => void;
+}
+
+export default function ConflictResolver({ localFile, remoteFile, onResolve }: ConflictResolverProps) {
+  const name = localFile.relative_path.split(/[/\\]/).pop() || localFile.relative_path;
+
+  return (
+    <div className="bg-status-red/5 border border-status-red/30 rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <AlertTriangle size={16} className="text-status-red" />
+        <span className="font-medium text-sm">Conflict: {name}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-4 mb-3">
+        <div className="bg-bg rounded-lg p-3">
+          <p className="text-xs font-medium text-accent-light mb-1">Your Version</p>
+          <p className="text-xs text-txt-dim">Size: {formatBytes(localFile.size)}</p>
+          <p className="text-xs text-txt-dim font-mono">Hash: {localFile.hash.slice(0, 12)}</p>
+        </div>
+        <div className="bg-bg rounded-lg p-3">
+          <p className="text-xs font-medium text-status-green mb-1">Their Version</p>
+          <p className="text-xs text-txt-dim">Size: {formatBytes(remoteFile.size)}</p>
+          <p className="text-xs text-txt-dim font-mono">Hash: {remoteFile.hash.slice(0, 12)}</p>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => onResolve("KeepMine")}
+          className="flex-1 bg-accent/20 hover:bg-accent/30 text-accent-light rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+        >
+          Keep Mine
+        </button>
+        <button
+          onClick={() => onResolve("UseTheirs")}
+          className="flex-1 bg-status-green/20 hover:bg-status-green/30 text-status-green rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+        >
+          Use Theirs
+        </button>
+        <button
+          onClick={() => onResolve("KeepBoth")}
+          className="flex-1 bg-status-yellow/20 hover:bg-status-yellow/30 text-status-yellow rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+        >
+          Keep Both
+        </button>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,84 @@
+export interface FileInfo {
+  relative_path: string;
+  size: number;
+  hash: string;
+  modified: number;
+  file_type: "Mod" | "CustomContent" | "Save";
+}
+
+export interface FileManifest {
+  files: Record<string, FileInfo>;
+  generated_at: number;
+}
+
+export interface PeerInfo {
+  id: string;
+  name: string;
+  ip: string;
+  port: number;
+  mod_count: number;
+  version: string;
+}
+
+export interface SessionInfo {
+  session_type: "Host" | "Client" | "None";
+  name: string;
+  port: number;
+  peer_count: number;
+}
+
+export interface SessionStatus {
+  session_type: "Host" | "Client" | "None";
+  name: string;
+  port: number;
+  peers: PeerInfo[];
+  is_syncing: boolean;
+}
+
+export interface SyncAction {
+  SendToRemote?: FileInfo;
+  ReceiveFromRemote?: FileInfo;
+  Conflict?: { local: FileInfo; remote: FileInfo };
+  Delete?: string;
+}
+
+export interface SyncPlan {
+  actions: SyncAction[];
+  total_bytes: number;
+}
+
+export type Resolution = "KeepMine" | "UseTheirs" | "KeepBoth";
+
+export interface ModProfile {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  author: string;
+  created_at: number;
+  mods: ProfileMod[];
+}
+
+export interface ProfileMod {
+  relative_path: string;
+  hash: string;
+  size: number;
+  name: string;
+}
+
+export interface SyncProgress {
+  file: string;
+  bytes_sent: number;
+  bytes_total: number;
+  files_done: number;
+  files_total: number;
+}
+
+export interface LogEntry {
+  id: string;
+  timestamp: number;
+  message: string;
+  level: "info" | "success" | "warning" | "error";
+}
+
+export type Page = "dashboard" | "mods" | "saves" | "profiles" | "activity";
