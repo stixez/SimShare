@@ -56,6 +56,7 @@ pub fn run() {
             commands::session::start_join,
             commands::session::connect_to_peer,
             commands::session::disconnect,
+            commands::session::disconnect_peer,
             commands::session::get_session_status,
             commands::files::scan_files,
             commands::files::get_sims4_path,

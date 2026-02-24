@@ -1,8 +1,22 @@
-import { Users, Monitor } from "lucide-react";
+import { Users, Monitor, X } from "lucide-react";
 import { useAppStore } from "../stores/useAppStore";
+import * as cmd from "../lib/commands";
+import { useLogStore } from "../stores/useLogStore";
 
 export default function PeerList() {
   const session = useAppStore((s) => s.session);
+  const addLog = useLogStore((s) => s.addLog);
+
+  const isHost = session?.session_type === "Host";
+
+  const handleKick = async (peerId: string, peerName: string) => {
+    try {
+      await cmd.disconnectPeer(peerId);
+      addLog(`Kicked peer: ${peerName}`, "info");
+    } catch (e) {
+      addLog(`Failed to kick peer: ${e}`, "error");
+    }
+  };
 
   if (!session || session.peers.length === 0) {
     return (
@@ -32,6 +46,15 @@ export default function PeerList() {
             </div>
             <span className="text-xs text-txt-dim">{peer.mod_count} mods</span>
             <span className="w-2 h-2 rounded-full bg-status-green" />
+            {isHost && (
+              <button
+                onClick={() => handleKick(peer.id, peer.name)}
+                title="Kick peer"
+                className="ml-1 p-1 rounded hover:bg-status-red/20 text-txt-dim hover:text-status-red transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
         ))}
       </div>

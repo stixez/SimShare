@@ -41,19 +41,24 @@ export async function setSims4Path(path: string): Promise<void> {
   return invoke("set_sims4_path", { path });
 }
 
-export async function computeSyncPlan(): Promise<SyncPlan> {
-  return invoke("compute_sync_plan");
+export async function computeSyncPlan(peerId?: string): Promise<SyncPlan> {
+  return invoke("compute_sync_plan", { peerId });
 }
 
-export async function executeSync(): Promise<void> {
-  return invoke("execute_sync");
+export async function executeSync(peerId?: string): Promise<void> {
+  return invoke("execute_sync", { peerId });
 }
 
 export async function resolveConflict(
   path: string,
   resolution: Resolution,
+  peerId?: string,
 ): Promise<void> {
-  return invoke("resolve_conflict", { path, resolution });
+  return invoke("resolve_conflict", { path, resolution, peerId });
+}
+
+export async function disconnectPeer(peerId: string): Promise<void> {
+  return invoke("disconnect_peer", { peerId });
 }
 
 export async function listProfiles(): Promise<ModProfile[]> {

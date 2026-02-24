@@ -72,6 +72,7 @@ export interface SyncProgress {
   bytes_total: number;
   files_done: number;
   files_total: number;
+  peer_id?: string;
 }
 
 export interface LogEntry {

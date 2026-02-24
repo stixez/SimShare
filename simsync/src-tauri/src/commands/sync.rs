@@ -8,6 +8,7 @@ use tokio::sync::Mutex;
 #[tauri::command]
 pub async fn compute_sync_plan(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
+    peer_id: Option<String>,
 ) -> Result<SyncPlan, String> {
     let mut app_state = state.lock().await;
 
@@ -15,13 +16,23 @@ pub async fn compute_sync_plan(
         return Err("No files scanned. Scan your files first.".to_string());
     }
 
-    let remote = app_state
+    let resolved_id = app_state.resolve_peer_id(peer_id)?;
+
+    let conn = app_state
+        .connections
+        .get(&resolved_id)
+        .ok_or("Peer not found")?;
+
+    let remote = conn
         .remote_manifest
         .as_ref()
         .ok_or("No remote manifest available. Connect to a peer first.")?;
 
     let plan = diff::compute_diff(&app_state.local_manifest, remote);
-    app_state.sync_plan = Some(plan.clone());
+
+    // Store plan on the peer connection
+    let conn = app_state.connections.get_mut(&resolved_id).unwrap();
+    conn.sync_plan = Some(plan.clone());
     Ok(plan)
 }
 
@@ -29,32 +40,42 @@ pub async fn compute_sync_plan(
 pub async fn execute_sync(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
     app: tauri::AppHandle,
+    peer_id: Option<String>,
 ) -> Result<(), String> {
-    let (plan, base_path) = {
+    let (plan, base_path, resolved_id) = {
         let mut app_state = state.lock().await;
-        if app_state.is_syncing {
+        let resolved_id = app_state.resolve_peer_id(peer_id)?;
+        let base = app_state.sims4_path.clone().ok_or("Sims 4 path not set")?;
+
+        let conn = app_state
+            .connections
+            .get_mut(&resolved_id)
+            .ok_or("Peer not found")?;
+
+        if conn.is_syncing {
             return Err("Sync is already in progress".to_string());
         }
-        let plan = app_state.sync_plan.take().ok_or("No sync plan computed.")?;
+        let plan = conn.sync_plan.take().ok_or("No sync plan computed.")?;
 
         // Prevent sync while unresolved conflicts exist
         let has_conflicts = plan.actions.iter().any(|a| matches!(a, SyncAction::Conflict { .. }));
         if has_conflicts {
-            app_state.sync_plan = Some(plan);
+            conn.sync_plan = Some(plan);
             return Err("Resolve all conflicts before syncing".to_string());
         }
 
-        let base = app_state.sims4_path.clone().ok_or("Sims 4 path not set")?;
-        app_state.is_syncing = true;
-        (plan, base)
+        conn.is_syncing = true;
+        (plan, base, resolved_id)
     };
 
     // Run sync and ensure is_syncing is always reset
-    let result = run_sync(&state, &app, &plan, &base_path).await;
+    let result = run_sync(&state, &app, &plan, &base_path, &resolved_id).await;
 
     {
         let mut app_state = state.lock().await;
-        app_state.is_syncing = false;
+        if let Some(conn) = app_state.connections.get_mut(&resolved_id) {
+            conn.is_syncing = false;
+        }
     }
 
     result
@@ -65,6 +86,7 @@ async fn run_sync(
     app: &tauri::AppHandle,
     plan: &SyncPlan,
     base_path: &str,
+    peer_id: &str,
 ) -> Result<(), String> {
     let total_files = plan.actions.len() as u64;
     let mut files_done = 0u64;
@@ -82,11 +104,13 @@ async fn run_sync(
                         "bytes_total": plan.total_bytes,
                         "files_done": files_done,
                         "files_total": total_files,
+                        "peer_id": peer_id,
                     }),
                 );
 
                 match transfer::request_file(
                     &state_arc,
+                    peer_id,
                     &file_info.relative_path,
                     base_path,
                 )
@@ -116,6 +140,7 @@ async fn run_sync(
                         "bytes_total": plan.total_bytes,
                         "files_done": files_done,
                         "files_total": total_files,
+                        "peer_id": peer_id,
                     }),
                 );
             }
@@ -144,6 +169,7 @@ async fn run_sync(
             "files_synced": files_done,
             "total_bytes": plan.total_bytes,
             "errors": sync_errors,
+            "peer_id": peer_id,
         }),
     );
 
@@ -159,21 +185,29 @@ pub async fn resolve_conflict(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
     path: String,
     resolution: Resolution,
+    peer_id: Option<String>,
 ) -> Result<(), String> {
     let mut app_state = state.lock().await;
 
-    if app_state.is_syncing {
+    let resolved_id = app_state.resolve_peer_id(peer_id)?;
+
+    let conn = app_state
+        .connections
+        .get_mut(&resolved_id)
+        .ok_or("Peer not found")?;
+
+    if conn.is_syncing {
         return Err("Cannot resolve conflicts while sync is in progress".to_string());
     }
 
     // Clone remote file info before mutating sync_plan to satisfy borrow checker
-    let remote_file = app_state
+    let remote_file = conn
         .remote_manifest
         .as_ref()
         .and_then(|m| m.files.get(&path))
         .cloned();
 
-    if let Some(ref mut plan) = app_state.sync_plan {
+    if let Some(ref mut plan) = conn.sync_plan {
         plan.actions.retain(|action| {
             if let SyncAction::Conflict { local, .. } = action {
                 return local.relative_path != path;

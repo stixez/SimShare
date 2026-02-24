@@ -95,8 +95,8 @@ pub async fn connect_to_peer(
 
     app_state.session_type = SessionType::Client;
     app_state.session_name = peer.name.clone();
-    app_state.peers.push(peer.clone());
 
+    let connection_peer_id = peer.id.clone();
     let state_clone = state.inner().clone();
     drop(app_state);
 
@@ -106,6 +106,7 @@ pub async fn connect_to_peer(
         if let Err(e) = crate::network::transfer::connect_to_host(
             &peer.ip,
             peer.port,
+            &connection_peer_id,
             state_clone.clone(),
             app_handle.clone(),
         ).await {
@@ -114,7 +115,7 @@ pub async fn connect_to_peer(
             let mut app_state = state_clone.lock().await;
             app_state.session_type = SessionType::None;
             app_state.session_name.clear();
-            app_state.peers.clear();
+            app_state.connections.clear();
             let _ = app_handle.emit(
                 "connection-failed",
                 serde_json::json!({"message": format!("{}", e)}),
@@ -135,11 +136,11 @@ pub async fn disconnect(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    // Send Disconnect message to peer before dropping the connection
+    // Send Disconnect message to all connected peers
     {
         let app_state = state.lock().await;
-        if let Some(ref conn) = app_state.connection {
-            let mut s = conn.lock().await;
+        for conn in app_state.connections.values() {
+            let mut s = conn.stream.lock().await;
             let _ = protocol::send_message(&mut *s, &Message::Disconnect).await;
         }
     }
@@ -147,19 +148,42 @@ pub async fn disconnect(
     crate::network::transfer::reset_cancellation_token().await;
 
     let mut app_state = state.lock().await;
-    app_state.connection = None;
+    app_state.connections.clear();
     app_state.session_type = SessionType::None;
     app_state.session_name.clear();
     app_state.local_display_name.clear();
-    app_state.peers.clear();
     app_state.discovered_peers.clear();
-    app_state.remote_manifest = None;
-    app_state.sync_plan = None;
-    app_state.is_syncing = false;
 
     discovery::stop_broadcast().await;
 
     let _ = app.emit("peer-disconnected", serde_json::json!({"name": "all"}));
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn disconnect_peer(
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+    app: tauri::AppHandle,
+    peer_id: String,
+) -> Result<(), String> {
+    let mut app_state = state.lock().await;
+
+    let conn = app_state
+        .connections
+        .remove(&peer_id)
+        .ok_or_else(|| format!("Peer '{}' not found", peer_id))?;
+
+    // Send Disconnect to the specific peer
+    {
+        let mut s = conn.stream.lock().await;
+        let _ = protocol::send_message(&mut *s, &Message::Disconnect).await;
+    }
+
+    let _ = app.emit(
+        "peer-disconnected",
+        serde_json::json!({"name": conn.info.name, "peer_id": peer_id}),
+    );
 
     Ok(())
 }
@@ -173,7 +197,7 @@ pub async fn get_session_status(
         session_type: app_state.session_type.clone(),
         name: app_state.session_name.clone(),
         port: app_state.session_port,
-        peers: app_state.peers.clone(),
-        is_syncing: app_state.is_syncing,
+        peers: app_state.peers(),
+        is_syncing: app_state.is_any_syncing(),
     })
 }

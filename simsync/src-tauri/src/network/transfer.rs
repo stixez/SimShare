@@ -108,23 +108,32 @@ async fn handle_client(
     }
 
     // Add peer to state
+    let peer_id = uuid::Uuid::new_v4().to_string();
     {
         let mut app_state = state.lock().await;
         let peer = crate::state::PeerInfo {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: peer_id.clone(),
             name: peer_name.clone(),
             ip: _peer_addr.split(':').next().unwrap_or("unknown").to_string(),
             port: 0,
             mod_count: 0,
             version: String::new(),
         };
-        app_state.peers.push(peer);
-        app_state.connection = Some(stream.clone());
+        app_state.connections.insert(
+            peer_id.clone(),
+            crate::state::PeerConnection {
+                info: peer,
+                stream: stream.clone(),
+                remote_manifest: None,
+                sync_plan: None,
+                is_syncing: false,
+            },
+        );
     }
 
     let _ = app.emit(
         "peer-connected",
-        serde_json::json!({"name": &peer_name}),
+        serde_json::json!({"name": &peer_name, "peer_id": &peer_id}),
     );
 
     // Handle messages in a loop
@@ -148,7 +157,9 @@ async fn handle_client(
             }
             Message::ManifestResponse { manifest } => {
                 let mut app_state = state.lock().await;
-                app_state.remote_manifest = Some(manifest);
+                if let Some(conn) = app_state.connections.get_mut(&peer_id) {
+                    conn.remote_manifest = Some(manifest);
+                }
             }
             Message::FileRequest { path } => {
                 let base = {
@@ -237,7 +248,7 @@ async fn handle_client(
             Message::Disconnect => {
                 let _ = app.emit(
                     "peer-disconnected",
-                    serde_json::json!({"name": &peer_name}),
+                    serde_json::json!({"name": &peer_name, "peer_id": &peer_id}),
                 );
                 break;
             }
@@ -250,8 +261,7 @@ async fn handle_client(
     // Clean up connection from state
     {
         let mut app_state = state.lock().await;
-        app_state.peers.retain(|p| p.name != peer_name);
-        app_state.connection = None;
+        app_state.connections.remove(&peer_id);
     }
 
     Ok(())
@@ -260,6 +270,7 @@ async fn handle_client(
 pub async fn connect_to_host(
     ip: &str,
     port: u16,
+    peer_id: &str,
     state: Arc<Mutex<AppState>>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
@@ -301,44 +312,60 @@ pub async fn connect_to_host(
 
     let _ = app.emit(
         "peer-connected",
-        serde_json::json!({"name": &host_name}),
+        serde_json::json!({"name": &host_name, "peer_id": peer_id}),
     );
 
     // Request and receive manifest
-    {
+    let remote_manifest = {
         let mut s = stream.lock().await;
         protocol::send_message(&mut *s, &Message::ManifestRequest).await?;
         let msg = protocol::recv_message(&mut *s).await?;
         match msg {
-            Message::ManifestResponse { manifest } => {
-                let mut app_state = state.lock().await;
-                app_state.remote_manifest = Some(manifest);
-            }
+            Message::ManifestResponse { manifest } => manifest,
             _ => return Err("Expected ManifestResponse".to_string()),
         }
-    }
+    };
 
-    // Store persistent connection
+    // Store persistent connection in connections map
     {
         let mut app_state = state.lock().await;
-        app_state.connection = Some(stream);
+        let info = crate::state::PeerInfo {
+            id: peer_id.to_string(),
+            name: host_name,
+            ip: ip.to_string(),
+            port,
+            mod_count: remote_manifest.files.len(),
+            version: String::new(),
+        };
+        app_state.connections.insert(
+            peer_id.to_string(),
+            crate::state::PeerConnection {
+                info,
+                stream,
+                remote_manifest: Some(remote_manifest),
+                sync_plan: None,
+                is_syncing: false,
+            },
+        );
     }
 
     Ok(())
 }
 
-/// Request a file from the remote peer over the persistent connection
+/// Request a file from a specific peer over their persistent connection
 pub async fn request_file(
     state: &Arc<Mutex<AppState>>,
+    peer_id: &str,
     path: &str,
     dest_base: &str,
 ) -> Result<(), String> {
     let connection = {
         let app_state = state.lock().await;
         app_state
-            .connection
-            .clone()
-            .ok_or("No active connection")?
+            .connections
+            .get(peer_id)
+            .map(|c| c.stream.clone())
+            .ok_or_else(|| format!("No connection for peer '{}'", peer_id))?
     };
 
     // Send file request

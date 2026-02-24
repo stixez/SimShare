@@ -104,21 +104,68 @@ pub struct ProfileMod {
     pub name: String,
 }
 
+pub struct PeerConnection {
+    pub info: PeerInfo,
+    pub stream: Arc<TokioMutex<TcpStream>>,
+    pub remote_manifest: Option<FileManifest>,
+    pub sync_plan: Option<SyncPlan>,
+    pub is_syncing: bool,
+}
+
 pub struct AppState {
     pub sims4_path: Option<String>,
     pub local_manifest: FileManifest,
-    pub remote_manifest: Option<FileManifest>,
     pub session_type: SessionType,
     pub session_name: String,
     pub local_display_name: String,
     pub session_port: u16,
-    pub peers: Vec<PeerInfo>,
-    pub is_syncing: bool,
     pub discovered_peers: Vec<PeerInfo>,
-    pub sync_plan: Option<SyncPlan>,
-    pub connection: Option<Arc<TokioMutex<TcpStream>>>,
+    pub connections: HashMap<String, PeerConnection>,
     #[allow(dead_code)]
     pub file_watcher: Option<RecommendedWatcher>,
+}
+
+impl AppState {
+    /// Get a list of all connected peers' info.
+    pub fn peers(&self) -> Vec<PeerInfo> {
+        self.connections.values().map(|c| c.info.clone()).collect()
+    }
+
+    /// Check if any peer is currently syncing.
+    pub fn is_any_syncing(&self) -> bool {
+        self.connections.values().any(|c| c.is_syncing)
+    }
+
+    /// For a client: get the single host connection's peer_id, if any.
+    pub fn host_peer_id(&self) -> Option<String> {
+        if self.session_type == SessionType::Client {
+            self.connections.keys().next().cloned()
+        } else {
+            None
+        }
+    }
+
+    /// Resolve an optional peer_id: if None and we're a client with one connection, auto-resolve.
+    pub fn resolve_peer_id(&self, peer_id: Option<String>) -> Result<String, String> {
+        match peer_id {
+            Some(id) => {
+                if self.connections.contains_key(&id) {
+                    Ok(id)
+                } else {
+                    Err(format!("Peer '{}' not found", id))
+                }
+            }
+            None => {
+                if self.connections.len() == 1 {
+                    Ok(self.connections.keys().next().unwrap().clone())
+                } else if self.connections.is_empty() {
+                    Err("No active connections".to_string())
+                } else {
+                    Err("Multiple peers connected — specify a peer_id".to_string())
+                }
+            }
+        }
+    }
 }
 
 impl Default for AppState {
@@ -126,16 +173,12 @@ impl Default for AppState {
         Self {
             sims4_path: None,
             local_manifest: FileManifest::default(),
-            remote_manifest: None,
             session_type: SessionType::None,
             session_name: String::new(),
             local_display_name: String::new(),
             session_port: 9847,
-            peers: Vec::new(),
-            is_syncing: false,
             discovered_peers: Vec::new(),
-            sync_plan: None,
-            connection: None,
+            connections: HashMap::new(),
             file_watcher: None,
         }
     }
