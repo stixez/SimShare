@@ -1,0 +1,522 @@
+use crate::network::protocol::{self, Message};
+use crate::state::AppState;
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use sha2::{Digest, Sha256};
+use std::sync::Arc;
+use tauri::Emitter;
+use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::Mutex;
+use tokio_util::sync::CancellationToken;
+
+/// Maximum file size we'll accept from a peer (2 GB)
+const MAX_FILE_SIZE: u64 = 2 * 1024 * 1024 * 1024;
+
+/// Maximum simultaneous peer connections a host will accept
+const MAX_PEERS: usize = 8;
+
+/// Maximum allowed length for a peer display name
+const MAX_PEER_NAME_LEN: usize = 64;
+
+/// Maximum decoded size of a single file chunk (1 MB)
+const MAX_CHUNK_SIZE: usize = 1_048_576;
+
+/// Cap initial allocation for incoming file data (10 MB).
+/// Files larger than this still work — the Vec grows dynamically.
+const MAX_PREALLOC: usize = 10 * 1024 * 1024;
+
+static LISTENER_TOKEN: Mutex<Option<CancellationToken>> = Mutex::const_new(None);
+
+async fn get_or_create_token() -> CancellationToken {
+    let mut guard = LISTENER_TOKEN.lock().await;
+    if let Some(ref token) = *guard {
+        if !token.is_cancelled() {
+            return token.clone();
+        }
+    }
+    let token = CancellationToken::new();
+    *guard = Some(token.clone());
+    token
+}
+
+pub async fn reset_cancellation_token() {
+    let mut guard = LISTENER_TOKEN.lock().await;
+    if let Some(token) = guard.take() {
+        token.cancel();
+    }
+}
+
+/// Bind the TCP listener and return it. Call `run_listener` to start accepting.
+/// Separated so the caller can detect port conflicts before spawning.
+pub async fn bind_listener(port: u16) -> Result<TcpListener, String> {
+    let addr = format!("0.0.0.0:{}", port);
+    TcpListener::bind(&addr)
+        .await
+        .map_err(|e| format!("Failed to bind port {}: {}", port, e))
+}
+
+/// Accept loop for an already-bound listener.
+pub async fn run_listener(
+    listener: TcpListener,
+    state: Arc<Mutex<AppState>>,
+    app: tauri::AppHandle,
+) {
+    let token = get_or_create_token().await;
+
+    log::info!("Listening on {:?}", listener.local_addr());
+
+    loop {
+        tokio::select! {
+            _ = token.cancelled() => {
+                log::info!("TCP listener shutting down");
+                break;
+            }
+            result = listener.accept() => {
+                let (stream, peer_addr) = match result {
+                    Ok(conn) => conn,
+                    Err(e) => {
+                        log::error!("Accept error: {}", e);
+                        continue;
+                    }
+                };
+
+                let state = state.clone();
+                let app = app.clone();
+
+                // Enforce connection limit
+                {
+                    let app_state = state.lock().await;
+                    if app_state.connections.len() >= MAX_PEERS {
+                        log::warn!("Rejecting connection from {} — max peers ({}) reached", peer_addr, MAX_PEERS);
+                        // Drop the stream immediately; peer will see a connection reset
+                        drop(stream);
+                        continue;
+                    }
+                }
+
+                tokio::spawn(async move {
+                    if let Err(e) = handle_client(stream, state, app, peer_addr.to_string()).await {
+                        log::error!("Client handler error: {}", e);
+                    }
+                });
+            }
+        }
+    }
+}
+
+async fn handle_client(
+    stream: TcpStream,
+    state: Arc<Mutex<AppState>>,
+    app: tauri::AppHandle,
+    _peer_addr: String,
+) -> Result<(), String> {
+    let stream = Arc::new(Mutex::new(stream));
+
+    // Wait for Hello
+    let msg = {
+        let mut s = stream.lock().await;
+        protocol::recv_message(&mut *s).await?
+    };
+
+    let peer_name = match msg {
+        Message::Hello { name, version: _ } => {
+            // Sanitize: truncate and strip control characters
+            name.chars()
+                .filter(|c| !c.is_control())
+                .take(MAX_PEER_NAME_LEN)
+                .collect::<String>()
+        }
+        _ => return Err("Expected Hello message".to_string()),
+    };
+
+    if peer_name.is_empty() {
+        return Err("Peer sent empty name".to_string());
+    }
+
+    // Send Welcome
+    {
+        let app_state = state.lock().await;
+        let our_name = app_state.session_name.clone();
+        let mut s = stream.lock().await;
+        protocol::send_message(
+            &mut *s,
+            &Message::Welcome {
+                name: our_name,
+                version: env!("CARGO_PKG_VERSION").to_string(),
+            },
+        )
+        .await?;
+    }
+
+    // Add peer to state
+    let peer_id = uuid::Uuid::new_v4().to_string();
+    {
+        let mut app_state = state.lock().await;
+        let peer = crate::state::PeerInfo {
+            id: peer_id.clone(),
+            name: peer_name.clone(),
+            ip: _peer_addr.split(':').next().unwrap_or("unknown").to_string(),
+            port: 0,
+            mod_count: 0,
+            version: String::new(),
+        };
+        app_state.connections.insert(
+            peer_id.clone(),
+            crate::state::PeerConnection {
+                info: peer,
+                stream: stream.clone(),
+                remote_manifest: None,
+                sync_plan: None,
+                is_syncing: false,
+            },
+        );
+    }
+
+    let _ = app.emit(
+        "peer-connected",
+        serde_json::json!({"name": &peer_name, "peer_id": &peer_id}),
+    );
+
+    // Handle messages in a loop
+    let mut clean_disconnect = false;
+    loop {
+        let msg = {
+            let mut s = stream.lock().await;
+            match protocol::recv_message(&mut *s).await {
+                Ok(m) => m,
+                Err(e) => {
+                    log::warn!("Connection lost for peer '{}' ({}): {}", peer_name, peer_id, e);
+                    break;
+                }
+            }
+        };
+
+        match msg {
+            Message::ManifestRequest => {
+                let manifest = {
+                    let app_state = state.lock().await;
+                    app_state.local_manifest.clone()
+                };
+                let mut s = stream.lock().await;
+                protocol::send_message(&mut *s, &Message::ManifestResponse { manifest }).await?;
+            }
+            Message::ManifestResponse { manifest } => {
+                let mut app_state = state.lock().await;
+                if let Some(conn) = app_state.connections.get_mut(&peer_id) {
+                    conn.remote_manifest = Some(manifest);
+                }
+            }
+            Message::FileRequest { path } => {
+                let base = {
+                    let app_state = state.lock().await;
+                    match app_state.sims4_path.as_ref() {
+                        Some(p) => p.clone(),
+                        None => {
+                            let mut s = stream.lock().await;
+                            protocol::send_message(
+                                &mut *s,
+                                &Message::Error {
+                                    message: "Sims 4 path not configured".to_string(),
+                                },
+                            )
+                            .await?;
+                            continue;
+                        }
+                    }
+                };
+
+                // Validate path stays within base directory
+                let full_path = match crate::utils::safe_join(&base, &path) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        log::warn!("Path traversal blocked in FileRequest: {}", e);
+                        let mut s = stream.lock().await;
+                        protocol::send_message(
+                            &mut *s,
+                            &Message::Error {
+                                message: "Invalid file path".to_string(),
+                            },
+                        )
+                        .await?;
+                        continue;
+                    }
+                };
+
+                match tokio::fs::read(&full_path).await {
+                    Ok(data) => {
+                        let hash = {
+                            let mut hasher = Sha256::new();
+                            hasher.update(&data);
+                            hex::encode(hasher.finalize())
+                        };
+
+                        let mut s = stream.lock().await;
+                        protocol::send_message(
+                            &mut *s,
+                            &Message::FileHeader {
+                                path: path.clone(),
+                                size: data.len() as u64,
+                                hash,
+                            },
+                        )
+                        .await?;
+
+                        // Send in 64KB chunks, base64-encoded
+                        let chunk_size = 65536;
+                        let mut offset = 0u64;
+                        for chunk in data.chunks(chunk_size) {
+                            protocol::send_message(
+                                &mut *s,
+                                &Message::FileChunk {
+                                    data: BASE64.encode(chunk),
+                                    offset,
+                                },
+                            )
+                            .await?;
+                            offset += chunk.len() as u64;
+                        }
+
+                        protocol::send_message(&mut *s, &Message::FileComplete { path }).await?;
+                    }
+                    Err(e) => {
+                        log::error!("File read error: {}", e);
+                        let mut s = stream.lock().await;
+                        protocol::send_message(
+                            &mut *s,
+                            &Message::Error {
+                                message: "File not available".to_string(),
+                            },
+                        )
+                        .await?;
+                    }
+                }
+            }
+            Message::Disconnect => {
+                clean_disconnect = true;
+                break;
+            }
+            other => {
+                log::warn!("Unexpected message from peer: {:?}", other);
+            }
+        }
+    }
+
+    // Always emit disconnect event (whether clean or unexpected)
+    let _ = app.emit(
+        "peer-disconnected",
+        serde_json::json!({
+            "name": &peer_name,
+            "peer_id": &peer_id,
+            "clean": clean_disconnect,
+        }),
+    );
+
+    // Clean up connection from state
+    {
+        let mut app_state = state.lock().await;
+        app_state.connections.remove(&peer_id);
+    }
+
+    Ok(())
+}
+
+pub async fn connect_to_host(
+    ip: &str,
+    port: u16,
+    peer_id: &str,
+    state: Arc<Mutex<AppState>>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    let addr = format!("{}:{}", ip, port);
+    let stream = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        TcpStream::connect(&addr),
+    )
+    .await
+    .map_err(|_| "Connection timed out (10s)".to_string())?
+    .map_err(|e| format!("Connection failed: {}", e))?;
+
+    let stream = Arc::new(Mutex::new(stream));
+
+    // Send Hello with our display name (not the session/peer name)
+    {
+        let app_state = state.lock().await;
+        let our_name = app_state.local_display_name.clone();
+        let mut s = stream.lock().await;
+        protocol::send_message(
+            &mut *s,
+            &Message::Hello {
+                name: our_name,
+                version: env!("CARGO_PKG_VERSION").to_string(),
+            },
+        )
+        .await?;
+    }
+
+    // Wait for Welcome
+    let host_name = {
+        let mut s = stream.lock().await;
+        let msg = protocol::recv_message(&mut *s).await?;
+        match msg {
+            Message::Welcome { name, .. } => name,
+            _ => return Err("Expected Welcome message".to_string()),
+        }
+    };
+
+    let _ = app.emit(
+        "peer-connected",
+        serde_json::json!({"name": &host_name, "peer_id": peer_id}),
+    );
+
+    // Request and receive manifest
+    let remote_manifest = {
+        let mut s = stream.lock().await;
+        protocol::send_message(&mut *s, &Message::ManifestRequest).await?;
+        let msg = protocol::recv_message(&mut *s).await?;
+        match msg {
+            Message::ManifestResponse { manifest } => manifest,
+            _ => return Err("Expected ManifestResponse".to_string()),
+        }
+    };
+
+    // Store persistent connection in connections map
+    {
+        let mut app_state = state.lock().await;
+        let info = crate::state::PeerInfo {
+            id: peer_id.to_string(),
+            name: host_name,
+            ip: ip.to_string(),
+            port,
+            mod_count: remote_manifest.files.len(),
+            version: String::new(),
+        };
+        app_state.connections.insert(
+            peer_id.to_string(),
+            crate::state::PeerConnection {
+                info,
+                stream,
+                remote_manifest: Some(remote_manifest),
+                sync_plan: None,
+                is_syncing: false,
+            },
+        );
+    }
+
+    Ok(())
+}
+
+/// Request a file from a specific peer over their persistent connection
+pub async fn request_file(
+    state: &Arc<Mutex<AppState>>,
+    peer_id: &str,
+    path: &str,
+    dest_base: &str,
+) -> Result<(), String> {
+    let connection = {
+        let app_state = state.lock().await;
+        app_state
+            .connections
+            .get(peer_id)
+            .map(|c| c.stream.clone())
+            .ok_or_else(|| format!("No connection for peer '{}'", peer_id))?
+    };
+
+    // Hold stream lock for the entire file transfer to prevent message interleaving
+    let (_expected_size, expected_hash, file_data) = {
+        let mut s = connection.lock().await;
+
+        // Send file request
+        protocol::send_message(&mut *s, &Message::FileRequest { path: path.to_string() }).await?;
+
+        // Receive FileHeader
+        let (expected_size, expected_hash) = {
+            let msg = protocol::recv_message(&mut *s).await?;
+            match msg {
+                Message::FileHeader { size, hash, .. } => (size, hash),
+                Message::Error { message } => return Err(message),
+                _ => return Err("Expected FileHeader".to_string()),
+            }
+        };
+
+        // Validate file size before allocation
+        if expected_size > MAX_FILE_SIZE {
+            return Err(format!(
+                "File too large: {} bytes (max {} bytes)",
+                expected_size, MAX_FILE_SIZE
+            ));
+        }
+
+        // Receive chunks — cap pre-allocation to avoid untrusted size causing OOM
+        let prealloc = std::cmp::min(expected_size as usize, MAX_PREALLOC);
+        let mut file_data = Vec::with_capacity(prealloc);
+        loop {
+            let msg = protocol::recv_message(&mut *s).await?;
+            match msg {
+                Message::FileChunk { data, .. } => {
+                    let decoded = BASE64.decode(&data).map_err(|e| e.to_string())?;
+                    if decoded.len() > MAX_CHUNK_SIZE {
+                        return Err(format!(
+                            "Chunk too large: {} bytes (max {})",
+                            decoded.len(),
+                            MAX_CHUNK_SIZE
+                        ));
+                    }
+                    file_data.extend_from_slice(&decoded);
+                    if file_data.len() as u64 > expected_size {
+                        return Err("Received more data than declared size".to_string());
+                    }
+                }
+                Message::FileComplete { .. } => break,
+                Message::Error { message } => return Err(message),
+                _ => return Err("Unexpected message during file transfer".to_string()),
+            }
+        }
+
+        (expected_size, expected_hash, file_data)
+    };
+
+    // Verify hash
+    let mut hasher = Sha256::new();
+    hasher.update(&file_data);
+    let actual_hash = hex::encode(hasher.finalize());
+    if actual_hash != expected_hash {
+        return Err(format!(
+            "Hash mismatch for {}: expected {}, got {}",
+            path, expected_hash, actual_hash
+        ));
+    }
+
+    // Validate path stays within base directory before writing
+    let dest_path = crate::utils::safe_join(dest_base, path)
+        .map_err(|e| format!("Path validation failed for {}: {}", path, e))?;
+
+    if let Some(parent) = dest_path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+    // Atomic write: write to temp file then rename to prevent partial files on crash/disconnect
+    let unique = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    let tmp_path = dest_path.with_extension(
+        format!(
+            "{}.{}.tmp",
+            dest_path.extension().and_then(|e| e.to_str()).unwrap_or(""),
+            unique,
+        ),
+    );
+    tokio::fs::write(&tmp_path, &file_data)
+        .await
+        .map_err(|e| e.to_string())?;
+    tokio::fs::rename(&tmp_path, &dest_path)
+        .await
+        .map_err(|e| {
+            // Clean up temp file on rename failure
+            let tmp = tmp_path.clone();
+            tokio::spawn(async move { let _ = tokio::fs::remove_file(tmp).await; });
+            e.to_string()
+        })?;
+
+    Ok(())
+}

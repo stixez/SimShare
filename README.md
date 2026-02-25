@@ -1,131 +1,113 @@
 <p align="center">
-  <img src="simsync/public/vite.svg" width="80" height="80" alt="SimSync logo" />
+  <img src="simshare/public/vite.svg" width="80" height="80" alt="SimShare" />
 </p>
 
-<h1 align="center">SimSync</h1>
+<h1 align="center">SimShare</h1>
 
 <p align="center">
-  Sync your Sims 4 mods, CC, and saves with friends over LAN — no cloud, no accounts, no uploads.
+  <strong>Share Sims 4 mods, CC, and saves with friends — directly over your local network.</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue" alt="Platforms" />
-  <img src="https://img.shields.io/badge/version-0.1.1-purple" alt="Version" />
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
+  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/stixez/SimShare?color=1ea84b&label=download&style=flat-square" alt="Latest Release" /></a>
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-1e2d38?style=flat-square" alt="Platforms" />
+  <img src="https://img.shields.io/github/license/stixez/SimShare?color=1e2d38&style=flat-square" alt="License" />
+</p>
+
+<p align="center">
+  <a href="../../releases/latest">Download</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;<a href="https://stixez.github.io/SimShare">Website</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;<a href="#quick-start">Quick Start</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;<a href="#building-from-source">Build from Source</a>
 </p>
 
 ---
 
-## What is SimSync?
+## Overview
 
-SimSync is a free, open-source desktop app that lets you and your friends share Sims 4 mods, custom content, and save files directly over your local network. No accounts, no file size limits, no waiting for uploads — just connect and sync.
+SimShare is a free, open-source desktop application for syncing Sims 4 mods, custom content, and save files between players on the same local network. No cloud services, no accounts, no file uploads — files transfer peer-to-peer at full LAN speed.
 
-**How it works:** One person hosts a session, and one or more friends join. SimSync compares mod folders, shows you exactly what's different, and lets you choose what to sync. Files transfer directly between your computers at LAN speed.
+One player hosts a session, others join. SimShare compares mod folders, surfaces differences and conflicts, and lets each player decide exactly what to sync.
 
 ---
 
 ## Features
 
-- **Multi-peer sync** — One host, multiple clients. Everyone syncs independently at the same time.
-- **Peer-to-peer sync** — Files transfer directly between computers. Nothing is uploaded anywhere.
-- **Auto-discovery** — SimSync finds other users on your network automatically via mDNS.
-- **Smart diffing** — Only syncs files that are actually different. Identical files are skipped.
-- **Conflict resolution** — When both sides have different versions of the same file, you choose: keep yours, use theirs, or keep both.
-- **Mod profiles** — Save snapshots of your current mod setup. Export and share them as `.simsync-profile` files.
-- **File integrity** — Every transferred file is verified with SHA-256 checksums.
-- **Real-time progress** — Watch sync progress with file counts and a progress bar.
-- **Activity log** — See everything that happens: connections, transfers, errors.
-- **Host controls** — Kick individual peers from your session at any time.
-- **Cross-platform** — Works on Windows, macOS (Intel & Apple Silicon), and Linux.
+| | Feature | Description |
+|-|---------|-------------|
+| **P2P** | Peer-to-peer transfer | Files move directly between computers. Nothing leaves your network. |
+| **Multi** | Multi-peer sessions | One host, multiple clients. Each client syncs independently. |
+| **mDNS** | Auto-discovery | Finds peers on your network automatically. No IPs to configure. |
+| **Diff** | Smart diffing | Compares file hashes. Only transfers what's actually different. |
+| **Resolve** | Conflict resolution | Keep yours, use theirs, or keep both — per file. |
+| **Profiles** | Mod profiles | Snapshot your mod setup. Export/import as `.simshare-profile` files. |
+| **SHA-256** | Integrity verification | Every file is hash-verified after transfer. |
+| **Live** | Real-time progress | File counts, byte totals, and percentage during sync. |
 
 ---
 
 ## Download
 
-Grab the latest release for your platform from the [Releases](../../releases) page:
+Get the latest release for your platform from the **[Releases](../../releases/latest)** page.
 
-| Platform | Download |
-|----------|----------|
-| **Windows** | `.exe` installer |
-| **macOS (Apple Silicon)** | `.dmg` (M1/M2/M3/M4) |
-| **macOS (Intel)** | `.dmg` (x86_64) |
-| **Linux** | `.AppImage` or `.deb` |
+| Platform | Format |
+|----------|--------|
+| Windows | `.exe` installer |
+| macOS (Apple Silicon) | `.dmg` |
+| macOS (Intel) | `.dmg` |
+| Linux | `.AppImage` / `.deb` |
 
-> **Note:** On macOS, you may need to right-click and select "Open" the first time, since the app is not notarized.
+> On macOS you may need to right-click > **Open** on first launch (the app is not notarized).
 
 ---
 
-## How to Use
+## Quick Start
 
-### Step 1: Install & Launch
+### 1. Install
 
-Download and install SimSync on both computers. Launch the app — it will automatically detect your Sims 4 folder.
+Download and run SimShare on each computer. The app auto-detects your Sims 4 folder on launch.
 
-> If your Sims 4 folder is in a non-standard location, you can set the path manually in the app.
+### 2. Connect
 
-### Step 2: Connect
+Both players must be on the **same local network** (same Wi-Fi / router).
 
-You and your friend need to be on the **same local network** (same Wi-Fi, same router, etc.).
+| Role | Action |
+|------|--------|
+| **Host** | Enter a display name > **Start Hosting** |
+| **Client** | Enter a display name > **Scan for Hosts** > click the host to connect |
 
-**Person A — Host a session:**
-1. Type your name in the "Host a Session" box
-2. Click **Start Hosting**
+### 3. Compare & Sync
 
-**Person B — Join the session:**
-1. Type your name in the "Join a Session" box
-2. Click **Scan for Hosts**
-3. You'll see the host appear — click their name to connect
+Click **Compare & Sync** on the Dashboard. SimShare scans both mod folders and categorizes every file:
 
-### Step 3: Compare
+- **Download** — files the peer has that you don't
+- **Upload** — files you have that the peer doesn't
+- **Conflict** — same file exists on both sides with different contents
 
-Once connected, click **Compare & Sync** on the Dashboard. SimSync will scan both mod folders and show you:
+Resolve any conflicts in the **Mods & CC** or **Saves** tab, then click **Sync Now**.
 
-- **Files to download** — Mods your friend has that you don't
-- **Files to upload** — Mods you have that your friend doesn't
-- **Conflicts** — Files that exist on both sides but are different
+### 4. Done
 
-### Step 4: Resolve Conflicts (if any)
+Click **Disconnect** when finished. All transferred files are already saved.
 
-If there are conflicts, go to the **Mods & CC** or **Saves** tab. For each conflict you'll see three options:
+---
 
-| Option | What it does |
-|--------|-------------|
-| **Keep Mine** | Ignore their version, keep your file as-is |
-| **Use Theirs** | Replace your file with their version |
-| **Keep Both** | Download their version with `_remote` added to the filename |
+## Remote Players
 
-### Step 5: Sync
+Not on the same network? SimShare works over any virtual LAN. We recommend **[Tailscale](https://tailscale.com)** (free for personal use):
 
-Once all conflicts are resolved, click **Sync Now**. Files will transfer directly between your computers. You'll see a progress bar and file-by-file updates.
-
-When it's done, you'll see a "Sync complete" message with a count of files transferred.
-
-### Step 6: Disconnect
-
-Click **Disconnect** when you're done. Your files are already saved — no further action needed.
+1. Both players install Tailscale and join the same network
+2. Use SimShare normally — mDNS discovery works through Tailscale
 
 ---
 
 ## Mod Profiles
 
-Profiles let you save a snapshot of which mods you currently have installed.
+Profiles capture a snapshot of your current mod list.
 
-- **Create a profile** — Go to the Profiles tab, click the "+" card, give it a name and description
-- **Export a profile** — Click the export button on any profile card to save it as a `.simsync-profile` file
-- **Import a profile** — Click "Import" and select a `.simsync-profile` file from a friend
-- **Delete a profile** — Click the trash icon on the profile card
-
-> Profiles record which mods were in your folder at the time of creation. They're useful for sharing mod lists or keeping track of different setups.
-
----
-
-## Not on the Same Network?
-
-If you and your friend are in different locations, SimSync still works — you just need a way to connect your networks. We recommend **[Tailscale](https://tailscale.com)** (free for personal use). It creates a virtual private network between your devices, so SimSync sees your friend's computer as if it were on the same Wi-Fi.
-
-1. Both install Tailscale and sign in
-2. Both connect to the same Tailscale network
-3. Use SimSync normally — it will discover peers through Tailscale
+| Action | How |
+|--------|-----|
+| Create | Profiles tab > **+** card > name & description |
+| Export | Click export on a profile card > saves a `.simshare-profile` file |
+| Import | Click **Import** > select a `.simshare-profile` file |
+| Delete | Click the trash icon on a profile card |
 
 ---
 
@@ -134,73 +116,83 @@ If you and your friend are in different locations, SimSync still works — you j
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 18+
-- [Rust](https://rustup.rs/) (latest stable)
-- Platform-specific dependencies for [Tauri v2](https://v2.tauri.app/start/prerequisites/)
+- [Rust](https://rustup.rs/) stable
+- Platform dependencies per [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/)
 
-### Steps
+### Build
 
 ```bash
-git clone https://github.com/yourusername/SimSync.git
-cd SimSync/simsync
+git clone https://github.com/stixez/SimShare.git
+cd SimShare/simshare
 npm install
-npm run tauri dev      # Development mode with hot reload
-npm run tauri build    # Production build with installer
+npm run tauri dev        # development with hot reload
+npm run tauri build      # production build with installer
 ```
 
-The production build output will be in `src-tauri/target/release/bundle/`.
+Output: `src-tauri/target/release/bundle/`
 
 ---
 
-## Tech Stack
+## Architecture
 
 | Layer | Technology |
 |-------|-----------|
 | Framework | [Tauri v2](https://v2.tauri.app/) |
 | Backend | Rust |
-| Frontend | React 19, TypeScript, Vite |
+| Frontend | React 19 + TypeScript + Vite |
 | Styling | Tailwind CSS |
 | State | Zustand |
-| Networking | TCP (direct), mDNS (discovery) |
-| Hashing | SHA-256 |
+| Networking | TCP (transfer) + mDNS (discovery) |
+| Integrity | SHA-256 |
 
 ---
 
 ## FAQ
 
-**Q: Does SimSync work with pirated copies of The Sims 4?**
-A: SimSync works with any Sims 4 installation that has a standard Mods and Saves folder structure.
+<details>
+<summary><strong>Is there a file size limit?</strong></summary>
+Individual files up to 2 GB. No limit on total sync size.
+</details>
 
-**Q: Is there a file size limit?**
-A: Individual files up to 2 GB are supported. There's no limit on total sync size.
+<details>
+<summary><strong>Can more than two people sync at once?</strong></summary>
+Yes. One person hosts, multiple friends join. Each client syncs independently with the host.
+</details>
 
-**Q: Can more than two people sync at once?**
-A: Yes! One person hosts and multiple friends can join simultaneously. Each client syncs independently with the host.
+<details>
+<summary><strong>Does it sync tray files?</strong></summary>
+SimShare syncs <code>.package</code> files (mods/CC) and save files. Tray files are not currently included.
+</details>
 
-**Q: Does it sync tray files?**
-A: SimSync syncs `.package` files (mods/CC) and save files from the Saves folder. Tray files are not currently included.
+<details>
+<summary><strong>Will it break my mods?</strong></summary>
+SimShare never modifies existing files unless you explicitly choose "Use Theirs" on a conflict. It only adds new files or replaces files you approve.
+</details>
 
-**Q: Will it break my mods?**
-A: SimSync never modifies your existing files unless you explicitly choose "Use Theirs" on a conflict. It only adds new files or replaces files you approve.
+<details>
+<summary><strong>Does it work with pirated copies of The Sims 4?</strong></summary>
+SimShare works with any Sims 4 installation that has a standard Mods and Saves folder structure.
+</details>
 
-**Q: Do both people need the same version?**
-A: Yes, both users should be running the same version of SimSync for best compatibility.
+<details>
+<summary><strong>Do both players need the same version?</strong></summary>
+Yes. Both should run the same version of SimShare for compatibility.
+</details>
 
 ---
 
 ## Contributing
 
-Contributions are welcome! Feel free to open issues for bugs or feature requests, or submit pull requests.
+Contributions are welcome. Open an [issue](../../issues) for bugs or feature requests, or submit a pull request.
 
 ---
 
 ## Support
 
-If you enjoy SimSync, consider supporting development:
-
-- [Buy Me a Coffee](https://www.buymeacoffee.com/stixe)
+If SimShare is useful to you, consider [buying me a coffee](https://www.buymeacoffee.com/stixe).
 
 ---
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+[MIT](LICENSE)

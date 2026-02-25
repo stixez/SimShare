@@ -43,7 +43,7 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: simsync/src-tauri
+          workspaces: simshare/src-tauri
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -57,7 +57,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
             librsvg2-dev \
             patchelf \
             libssl-dev \
@@ -65,7 +64,7 @@ jobs:
             libayatana-appindicator3-dev
 
       - name: Install frontend dependencies
-        working-directory: simsync
+        working-directory: simshare
         run: npm ci
 
       - name: Build Tauri app
@@ -73,9 +72,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: simsync
+          projectPath: simshare
           tagName: ${{ github.ref_name }}
-          releaseName: "SimSync ${{ github.ref_name }}"
+          releaseName: "SimShare ${{ github.ref_name }}"
           releaseBody: |
             See the [changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
 
@@ -86,6 +85,6 @@ jobs:
             | macOS (Apple Silicon) | `.dmg` |
             | macOS (Intel) | `.dmg` |
             | Linux | `.AppImage` or `.deb` |
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.target }}

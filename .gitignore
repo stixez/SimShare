@@ -2,14 +2,13 @@
 node_modules/
 
 # Build output
-dist/
-simsync/dist/
+**/dist/
 
 # Rust build
-simsync/src-tauri/target/
+**/target/
 
 # Tauri generated
-simsync/src-tauri/gen/
+**/gen/
 
 # IDE
 .vscode/
