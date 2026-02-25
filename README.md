@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="simshare/public/vite.svg" width="80" height="80" alt="SimShare" />
+  <img src="docs/icon.svg" width="80" height="80" alt="SimShare" />
 </p>
 
 <h1 align="center">SimShare</h1>

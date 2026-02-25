@@ -8,6 +8,12 @@
   <meta property="og:title" content="SimShare — Sync Sims 4 Mods with Friends">
   <meta property="og:description" content="Free, open-source desktop app to sync Sims 4 mods, CC, and saves with friends over LAN.">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="https://stixez.github.io/SimShare/screenshots/dashboard.png">
+  <meta property="og:url" content="https://stixez.github.io/SimShare">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SimShare — Sync Sims 4 Mods with Friends">
+  <meta name="twitter:description" content="Free, open-source desktop app to sync Sims 4 mods, CC, and saves with friends over LAN.">
+  <meta name="twitter:image" content="https://stixez.github.io/SimShare/screenshots/dashboard.png">
   <meta name="theme-color" content="#1ea84b">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231ea84b'/><path d='M16 6L10 12L16 18L22 12Z' fill='white' opacity='.9'/></svg>">
   <style>
@@ -111,6 +117,17 @@
       font-size: 0.82rem;
       font-weight: 600;
     }
+
+    .menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .menu-toggle svg { width: 24px; height: 24px; }
 
     /* ─── Hero ─── */
     .hero {
@@ -510,9 +527,37 @@
       .hero h1 { font-size: 2.2rem; }
       .hero .tagline { font-size: 1.05rem; }
       .feature-grid { grid-template-columns: 1fr 1fr; }
+      .screenshot-grid { gap: 12px; }
       .steps { grid-template-columns: 1fr 1fr; gap: 24px; }
       .steps::before { display: none; }
       .platform-grid { gap: 32px; }
+      section { padding: 60px 0; }
+
+      .menu-toggle { display: block; }
+
+      .header-nav {
+        display: none;
+        position: absolute;
+        top: 56px;
+        left: 0;
+        right: 0;
+        background: rgba(10, 15, 20, 0.95);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+        flex-direction: column;
+        padding: 16px 24px;
+        gap: 16px;
+      }
+
+      .header-nav.open { display: flex; }
+
+      .header-nav a { font-size: 0.95rem; }
+
+      .header-nav .btn-sm {
+        text-align: center;
+        padding: 10px 16px;
+      }
     }
 
     @media (max-width: 480px) {
@@ -520,8 +565,9 @@
       .downloads { flex-direction: column; align-items: center; }
       .btn { width: 100%; max-width: 280px; justify-content: center; }
       .feature-grid { grid-template-columns: 1fr; }
+      .screenshot-grid { grid-template-columns: 1fr; }
+      .screenshot-grid .screenshot-wide { grid-column: auto; }
       .steps { grid-template-columns: 1fr; }
-      .header-nav a:not(.btn-sm) { display: none; }
       .footer-inner { flex-direction: column; text-align: center; }
       .support-card { padding: 36px 24px; }
     }
@@ -540,6 +586,9 @@
         </svg>
         <span>Sim</span>Share
       </div>
+      <button class="menu-toggle" aria-label="Menu" onclick="document.querySelector('.header-nav').classList.toggle('open')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
       <nav class="header-nav">
         <a href="#features">Features</a>
         <a href="#screenshots">Screenshots</a>
@@ -723,7 +772,7 @@
     <div class="container">
       <div class="footer-inner">
         <div class="footer-left">
-          &copy; 2025 SimShare &middot; MIT License
+          &copy; 2026 SimShare &middot; MIT License
         </div>
         <div class="footer-links">
           <a href="https://github.com/stixez/SimShare">GitHub</a>
@@ -734,6 +783,12 @@
       </div>
     </div>
   </footer>
+
+  <script>
+    document.querySelectorAll('.header-nav a').forEach(a => {
+      a.addEventListener('click', () => document.querySelector('.header-nav').classList.remove('open'));
+    });
+  </script>
 
 </body>
 </html>
