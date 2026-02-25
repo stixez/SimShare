@@ -80,7 +80,11 @@ Get the latest release for your platform from the **[Releases](../../releases/la
 | macOS (Intel) | `.dmg` |
 | Linux | `.AppImage` / `.deb` |
 
-> On macOS you may need to right-click > **Open** on first launch (the app is not notarized).
+> **macOS users:** The app is not signed/notarized yet. macOS will show "app is damaged" on first launch. To fix this, open Terminal and run:
+> ```
+> xattr -cr /Applications/SimShare.app
+> ```
+> Then open SimShare normally. You only need to do this once.
 
 ---
 
