@@ -116,7 +116,21 @@
       border-radius: 8px;
       font-size: 0.82rem;
       font-weight: 600;
+      color: white;
     }
+
+    .header-nav .btn-sm:hover { color: white; }
+
+    .btn-donate-sm {
+      color: var(--yellow) !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-donate-sm:hover { color: #fbb73a !important; }
+
+    .btn-donate-sm svg { width: 14px; height: 14px; }
 
     .menu-toggle {
       display: none;
@@ -438,57 +452,6 @@
       color: var(--text-dim);
     }
 
-    /* ─── Support / Donate ─── */
-    .support {
-      text-align: center;
-    }
-
-    .support-card {
-      background: linear-gradient(135deg, var(--bg-card) 0%, #1a2230 100%);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 48px 40px;
-      max-width: 560px;
-      margin: 0 auto;
-    }
-
-    .support-card .heart {
-      font-size: 2rem;
-      margin-bottom: 16px;
-      display: block;
-    }
-
-    .support-card h3 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      margin-bottom: 12px;
-    }
-
-    .support-card p {
-      color: var(--text-dim);
-      font-size: 0.92rem;
-      margin-bottom: 28px;
-      line-height: 1.6;
-    }
-
-    .btn-donate {
-      background: var(--yellow);
-      color: #1a1a1a;
-      font-weight: 700;
-      box-shadow: 0 2px 12px rgba(245, 166, 35, 0.25);
-    }
-
-    .btn-donate:hover {
-      background: #fbb73a;
-      color: #1a1a1a;
-      box-shadow: 0 4px 20px rgba(245, 166, 35, 0.35);
-      transform: translateY(-1px);
-    }
-
-    .btn-donate svg {
-      fill: currentColor;
-    }
-
     /* ─── Footer ─── */
     footer {
       border-top: 1px solid var(--border);
@@ -569,7 +532,6 @@
       .screenshot-grid .screenshot-wide { grid-column: auto; }
       .steps { grid-template-columns: 1fr; }
       .footer-inner { flex-direction: column; text-align: center; }
-      .support-card { padding: 36px 24px; }
     }
   </style>
 </head>
@@ -594,6 +556,10 @@
         <a href="#screenshots">Screenshots</a>
         <a href="#how-it-works">How It Works</a>
         <a href="https://github.com/stixez/SimShare">GitHub</a>
+        <a href="https://www.buymeacoffee.com/stixe" class="btn-donate-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          Donate
+        </a>
         <a href="https://github.com/stixez/SimShare/releases/latest" class="btn-sm btn-primary">Download</a>
       </nav>
     </div>
@@ -748,21 +714,6 @@
           </div>
           <div class="platform-name">Linux</div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Support -->
-  <section class="support">
-    <div class="container">
-      <div class="support-card">
-        <span class="heart">&#x2615;</span>
-        <h3>Support SimShare</h3>
-        <p>SimShare is free and always will be. If it saves you time or makes playing with friends easier, consider buying me a coffee to keep development going.</p>
-        <a href="https://www.buymeacoffee.com/stixe" class="btn btn-donate">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-          Buy Me a Coffee
-        </a>
       </div>
     </div>
   </section>
