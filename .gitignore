@@ -27,3 +27,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Claude Code
+CLAUDE.md
+
+# Private stats
+stats.html
