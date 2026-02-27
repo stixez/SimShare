@@ -229,14 +229,14 @@ async fn handle_client(
             Message::FileRequest { path } => {
                 let base = {
                     let app_state = state.lock().await;
-                    match app_state.sims4_path.as_ref() {
-                        Some(p) => p.clone(),
-                        None => {
+                    match app_state.active_game_path() {
+                        Ok(p) => p,
+                        Err(e) => {
                             let mut s = stream.lock().await;
                             protocol::send_message(
                                 &mut *s,
                                 &Message::Error {
-                                    message: "Sims 4 path not configured".to_string(),
+                                    message: e,
                                 },
                             )
                             .await?;

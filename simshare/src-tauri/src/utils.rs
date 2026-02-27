@@ -1,4 +1,80 @@
+use crate::state::SimsGame;
 use std::path::PathBuf;
+
+pub fn detect_sims2_path() -> Option<String> {
+    let mut candidates = Vec::new();
+
+    if let Some(docs) = dirs::document_dir() {
+        candidates.push(docs.join("EA Games").join("The Sims 2"));
+        candidates.push(docs.join("EA Games").join("The Sims 2 Ultimate Collection"));
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(home) = dirs::home_dir() {
+            candidates.push(
+                home.join("OneDrive")
+                    .join("Documents")
+                    .join("EA Games")
+                    .join("The Sims 2"),
+            );
+            candidates.push(
+                home.join("OneDrive")
+                    .join("Documents")
+                    .join("EA Games")
+                    .join("The Sims 2 Ultimate Collection"),
+            );
+        }
+    }
+
+    candidates
+        .into_iter()
+        .find(|p| p.exists())
+        .map(|p| p.to_string_lossy().to_string())
+}
+
+pub fn detect_sims3_path() -> Option<String> {
+    let mut candidates = Vec::new();
+
+    if let Some(docs) = dirs::document_dir() {
+        candidates.push(docs.join("Electronic Arts").join("The Sims 3"));
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(home) = dirs::home_dir() {
+            candidates.push(
+                home.join("OneDrive")
+                    .join("Documents")
+                    .join("Electronic Arts")
+                    .join("The Sims 3"),
+            );
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if let Some(home) = dirs::home_dir() {
+            candidates.push(
+                home.join("Documents")
+                    .join("Electronic Arts")
+                    .join("The Sims 3"),
+            );
+            candidates.push(
+                home.join("snap")
+                    .join("the-sims-3")
+                    .join("common")
+                    .join("Electronic Arts")
+                    .join("The Sims 3"),
+            );
+        }
+    }
+
+    candidates
+        .into_iter()
+        .find(|p| p.exists())
+        .map(|p| p.to_string_lossy().to_string())
+}
 
 pub fn detect_sims4_path() -> Option<String> {
     let mut candidates = Vec::new();
@@ -45,6 +121,30 @@ pub fn detect_sims4_path() -> Option<String> {
         .into_iter()
         .find(|p| p.exists())
         .map(|p| p.to_string_lossy().to_string())
+}
+
+pub fn detect_game_path(game: &SimsGame) -> Option<String> {
+    match game {
+        SimsGame::Sims2 => detect_sims2_path(),
+        SimsGame::Sims3 => detect_sims3_path(),
+        SimsGame::Sims4 => detect_sims4_path(),
+    }
+}
+
+pub fn game_label(game: &SimsGame) -> &str {
+    match game {
+        SimsGame::Sims2 => "Sims 2",
+        SimsGame::Sims3 => "Sims 3",
+        SimsGame::Sims4 => "Sims 4",
+    }
+}
+
+pub fn valid_mod_extensions(game: &SimsGame) -> &[&str] {
+    match game {
+        SimsGame::Sims2 => &["package"],
+        SimsGame::Sims3 => &["package", "sims3pack", "zip"],
+        SimsGame::Sims4 => &["package", "ts4script", "zip", "bpi", "cfg", "txt"],
+    }
 }
 
 pub fn mods_path(base: &str) -> PathBuf {

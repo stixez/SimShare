@@ -1,4 +1,4 @@
-use crate::state::AppState;
+use crate::state::{AppState, SimsGame};
 use crate::utils;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -6,8 +6,16 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-const VALID_EXTENSIONS: &[&str] = &["package", "ts4script", "zip", "sims3pack"];
 const MAX_INSTALL_FILE_SIZE: u64 = 2 * 1024 * 1024 * 1024; // 2 GB
+
+fn parse_game(game: &str) -> Result<SimsGame, String> {
+    match game {
+        "Sims2" => Ok(SimsGame::Sims2),
+        "Sims3" => Ok(SimsGame::Sims3),
+        "Sims4" => Ok(SimsGame::Sims4),
+        _ => Err(format!("Unknown game: {}", game)),
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstallResult {
@@ -36,15 +44,19 @@ fn file_hash(path: &Path) -> Result<String, String> {
 pub async fn install_mod_files(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
     file_paths: Vec<String>,
+    game: Option<String>,
 ) -> Result<Vec<InstallResult>, String> {
-    let app_state = state.lock().await;
-    let base = app_state
-        .sims4_path
-        .as_ref()
-        .ok_or("Sims 4 path not set")?
-        .clone();
-    drop(app_state);
+    let (base, target_game) = {
+        let app_state = state.lock().await;
+        let target_game = match game {
+            Some(ref g) => parse_game(g)?,
+            None => app_state.active_game.clone(),
+        };
+        let path = app_state.active_game_path()?;
+        (path, target_game)
+    };
 
+    let valid_extensions = utils::valid_mod_extensions(&target_game);
     let mods_dir = utils::mods_path(&base);
     if !mods_dir.exists() {
         std::fs::create_dir_all(&mods_dir).map_err(|e| e.to_string())?;
@@ -72,14 +84,17 @@ pub async fn install_mod_files(
             .and_then(|e| e.to_str())
             .unwrap_or("")
             .to_lowercase();
-        if !VALID_EXTENSIONS.contains(&ext.as_str()) {
+        if !valid_extensions.contains(&ext.as_str()) {
+            let supported: Vec<String> = valid_extensions.iter().map(|e| format!(".{}", e)).collect();
             results.push(InstallResult {
                 source: source_str.clone(),
                 destination: String::new(),
                 status: InstallStatus::InvalidExtension,
                 message: Some(format!(
-                    "Invalid extension '.{}'. Supported: .package, .ts4script, .zip, .sims3pack",
-                    ext
+                    "Invalid extension '.{}'. Supported for {}: {}",
+                    ext,
+                    utils::game_label(&target_game),
+                    supported.join(", ")
                 )),
             });
             continue;
@@ -189,14 +204,19 @@ pub async fn confirm_install_duplicate(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
     source: String,
     strategy: String,
+    game: Option<String>,
 ) -> Result<InstallResult, String> {
-    let app_state = state.lock().await;
-    let base = app_state
-        .sims4_path
-        .as_ref()
-        .ok_or("Sims 4 path not set")?
-        .clone();
-    drop(app_state);
+    let base = {
+        let app_state = state.lock().await;
+        match game {
+            Some(ref g) => {
+                let target_game = parse_game(g)?;
+                app_state.game_paths.get(&target_game).cloned()
+                    .ok_or_else(|| format!("{} path not set", utils::game_label(&target_game)))?
+            }
+            None => app_state.active_game_path()?,
+        }
+    };
 
     let mods_dir = utils::mods_path(&base);
     let source_path = Path::new(&source);

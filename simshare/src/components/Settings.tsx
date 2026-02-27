@@ -1,58 +1,83 @@
 import { useState, useEffect } from "react";
-import { FolderOpen, RefreshCw, Plus, X } from "lucide-react";
+import { FolderOpen, RefreshCw, Plus, X, ChevronDown } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { ask, message } from "@tauri-apps/plugin-dialog";
 import { useAppStore } from "../stores/useAppStore";
 import { useLogStore } from "../stores/useLogStore";
+import type { SimsGame } from "../lib/types";
 import * as cmd from "../lib/commands";
 
+const GAMES: { key: SimsGame; label: string }[] = [
+  { key: "Sims2", label: "Sims 2" },
+  { key: "Sims3", label: "Sims 3" },
+  { key: "Sims4", label: "Sims 4" },
+];
+
 export default function Settings() {
-  const sims4Path = useAppStore((s) => s.sims4Path);
-  const setSims4Path = useAppStore((s) => s.setSims4Path);
+  const gamePaths = useAppStore((s) => s.gamePaths);
+  const setGamePaths = useAppStore((s) => s.setGamePaths);
+  const activeGame = useAppStore((s) => s.activeGame);
+  const setActiveGame = useAppStore((s) => s.setActiveGame);
   const excludePatterns = useAppStore((s) => s.excludePatterns);
   const setExcludePatterns = useAppStore((s) => s.setExcludePatterns);
   const addLog = useLogStore((s) => s.addLog);
 
   const [port, setPort] = useState("9847");
   const [version, setVersion] = useState("");
-  const [pathInput, setPathInput] = useState(sims4Path || "");
+  const [pathInputs, setPathInputs] = useState<Partial<Record<SimsGame, string>>>({});
   const [updating, setUpdating] = useState(false);
   const [newPattern, setNewPattern] = useState("");
 
   useEffect(() => {
     cmd.getAppVersion().then(setVersion).catch(() => {});
-    cmd.getSims4Path().then((p) => {
-      setSims4Path(p);
-      setPathInput(p);
+    cmd.getAllGamePaths().then((paths) => {
+      const converted: Partial<Record<SimsGame, string>> = {};
+      for (const [key, value] of Object.entries(paths)) {
+        if (value) converted[key as SimsGame] = value;
+      }
+      setGamePaths(converted);
+      setPathInputs(converted);
     }).catch(() => {});
+    cmd.getActiveGame().then((g) => setActiveGame(g as SimsGame)).catch(() => {});
     cmd.getExcludePatterns().then(setExcludePatterns).catch(() => {});
-  }, [setSims4Path, setExcludePatterns]);
+  }, [setGamePaths, setActiveGame, setExcludePatterns]);
 
-  const handleBrowse = async () => {
+  const handleBrowse = async (game: SimsGame) => {
     try {
       const selected = await open({ directory: true });
       if (selected) {
         const path = typeof selected === "string" ? selected : selected;
-        setPathInput(path);
-        await cmd.setSims4Path(path);
-        setSims4Path(path);
-        addLog(`Sims 4 path updated to: ${path}`, "success");
+        setPathInputs((prev) => ({ ...prev, [game]: path }));
+        await cmd.setGamePath(game, path);
+        setGamePaths({ ...gamePaths, [game]: path });
+        addLog(`${GAMES.find((g) => g.key === game)?.label} path updated to: ${path}`, "success");
       }
     } catch (e) {
       addLog(`Failed to set path: ${e}`, "error");
     }
   };
 
-  const handlePathSubmit = async () => {
-    if (!pathInput.trim()) return;
+  const handlePathSubmit = async (game: SimsGame) => {
+    const input = pathInputs[game]?.trim();
+    if (!input) return;
     try {
-      await cmd.setSims4Path(pathInput.trim());
-      setSims4Path(pathInput.trim());
-      addLog(`Sims 4 path updated to: ${pathInput.trim()}`, "success");
+      await cmd.setGamePath(game, input);
+      setGamePaths({ ...gamePaths, [game]: input });
+      addLog(`${GAMES.find((g) => g.key === game)?.label} path updated to: ${input}`, "success");
     } catch (e) {
       addLog(`Failed to set path: ${e}`, "error");
+    }
+  };
+
+  const handleActiveGameChange = async (game: SimsGame) => {
+    try {
+      await cmd.setActiveGame(game);
+      setActiveGame(game);
+      addLog(`Active game set to ${GAMES.find((g) => g.key === game)?.label}`, "info");
+    } catch (e) {
+      addLog(`Failed to set active game: ${e}`, "error");
     }
   };
 
@@ -103,33 +128,71 @@ export default function Settings() {
       <h2 className="text-xl font-bold">Settings</h2>
 
       <div className="bg-bg-card rounded-xl border border-border p-5 space-y-4">
-        <h3 className="font-semibold text-sm">Sims 4 Path</h3>
+        <h3 className="font-semibold text-sm">Active Game</h3>
         <p className="text-xs text-txt-dim">
-          The root folder for your Sims 4 installation (contains Mods and Saves folders).
+          Select which game SimShare should scan, sync, backup, and install for.
         </p>
         <div className="flex gap-2">
-          <input
-            type="text"
-            value={pathInput}
-            onChange={(e) => setPathInput(e.target.value)}
-            placeholder="Path to The Sims 4 folder..."
-            className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
-          />
+          {GAMES.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => handleActiveGameChange(key)}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                activeGame === key
+                  ? "bg-accent text-white border-accent"
+                  : "bg-bg border-border text-txt-dim hover:bg-bg-card-hover"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {GAMES.map(({ key, label }) => (
+        <div key={key} className="bg-bg-card rounded-xl border border-border p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-sm">{label} Path</h3>
+            {gamePaths[key] && (
+              <span className="text-[10px] bg-status-green/20 text-status-green px-1.5 py-0.5 rounded-full font-medium">
+                Detected
+              </span>
+            )}
+            {key === activeGame && (
+              <span className="text-[10px] bg-accent/20 text-accent-light px-1.5 py-0.5 rounded-full font-medium">
+                Active
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-txt-dim">
+            The root folder for your {label} installation (contains Mods and Saves folders).
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={pathInputs[key] || ""}
+              onChange={(e) =>
+                setPathInputs((prev) => ({ ...prev, [key]: e.target.value }))
+              }
+              placeholder={`Path to The ${label} folder...`}
+              className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
+            />
+            <button
+              onClick={() => handleBrowse(key)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-bg border border-border hover:bg-bg-card-hover text-sm transition-colors"
+            >
+              <FolderOpen size={14} />
+              Browse
+            </button>
+          </div>
           <button
-            onClick={handleBrowse}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-bg border border-border hover:bg-bg-card-hover text-sm transition-colors"
+            onClick={() => handlePathSubmit(key)}
+            className="bg-accent hover:bg-accent-light text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
           >
-            <FolderOpen size={14} />
-            Browse
+            Save Path
           </button>
         </div>
-        <button
-          onClick={handlePathSubmit}
-          className="bg-accent hover:bg-accent-light text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-        >
-          Save Path
-        </button>
-      </div>
+      ))}
 
       <div className="bg-bg-card rounded-xl border border-border p-5 space-y-4">
         <h3 className="font-semibold text-sm">Network</h3>

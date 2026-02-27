@@ -5,6 +5,18 @@ import { useLogStore } from "../stores/useLogStore";
 import { formatBytes, formatDate } from "../lib/utils";
 import * as cmd from "../lib/commands";
 
+const GAME_LABELS: Record<string, string> = {
+  Sims2: "Sims 2",
+  Sims3: "Sims 3",
+  Sims4: "Sims 4",
+};
+
+const GAME_COLORS: Record<string, string> = {
+  Sims2: "bg-status-yellow/20 text-status-yellow",
+  Sims3: "bg-status-green/20 text-status-green",
+  Sims4: "bg-accent/20 text-accent-light",
+};
+
 export default function BackupList() {
   const backups = useAppStore((s) => s.backups);
   const setBackups = useAppStore((s) => s.setBackups);
@@ -142,7 +154,12 @@ export default function BackupList() {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-semibold text-sm">{backup.label}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-sm">{backup.label}</h3>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${GAME_COLORS[backup.game] || GAME_COLORS.Sims4}`}>
+                      {GAME_LABELS[backup.game] || "Sims 4"}
+                    </span>
+                  </div>
                   <p className="text-xs text-txt-dim mt-1">
                     {formatDate(backup.created_at)}
                   </p>

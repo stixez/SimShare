@@ -82,7 +82,7 @@ pub struct SyncPlan {
     pub excluded: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum SimsGame {
     Sims2,
     Sims3,
@@ -141,7 +141,8 @@ pub struct PeerConnection {
 }
 
 pub struct AppState {
-    pub sims4_path: Option<String>,
+    pub game_paths: HashMap<SimsGame, String>,
+    pub active_game: SimsGame,
     pub local_manifest: FileManifest,
     pub session_type: SessionType,
     pub session_name: String,
@@ -163,6 +164,19 @@ impl AppState {
     /// Check if any peer is currently syncing.
     pub fn is_any_syncing(&self) -> bool {
         self.connections.values().any(|c| c.is_syncing)
+    }
+
+    /// Get the path for the active game, or error if not configured.
+    pub fn active_game_path(&self) -> Result<String, String> {
+        self.game_paths
+            .get(&self.active_game)
+            .cloned()
+            .ok_or_else(|| {
+                format!(
+                    "{} path not set. Please set it first.",
+                    crate::utils::game_label(&self.active_game)
+                )
+            })
     }
 
     /// Resolve an optional peer_id: if None and we're a client with one connection, auto-resolve.
@@ -191,7 +205,8 @@ impl AppState {
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            sims4_path: None,
+            game_paths: HashMap::new(),
+            active_game: SimsGame::Sims4,
             local_manifest: FileManifest::default(),
             session_type: SessionType::None,
             session_name: String::new(),

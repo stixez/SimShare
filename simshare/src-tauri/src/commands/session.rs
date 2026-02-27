@@ -33,8 +33,11 @@ pub async fn start_host(
             return Err("Already in a session. Disconnect first.".to_string());
         }
 
-        if app_state.sims4_path.is_none() {
-            return Err("Sims 4 path not set. Please set it first.".to_string());
+        if !app_state.game_paths.contains_key(&app_state.active_game) {
+            return Err(format!(
+                "{} path not set. Please set it first.",
+                crate::utils::game_label(&app_state.active_game)
+            ));
         }
 
         (app_state.session_port, app_state.local_manifest.files.len())

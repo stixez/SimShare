@@ -5,7 +5,7 @@ mod sync;
 mod utils;
 mod watcher;
 
-use state::AppState;
+use state::{AppState, SimsGame};
 use std::sync::Arc;
 use tauri::Manager;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
@@ -67,27 +67,44 @@ pub fn run() {
             let state_clone = state.inner().clone();
 
             tauri::async_runtime::spawn(async move {
-                // Detect path outside the lock
-                let path = utils::detect_sims4_path();
+                // Detect paths for all three games
+                let mut game_paths = std::collections::HashMap::new();
+                for game in &[SimsGame::Sims4, SimsGame::Sims3, SimsGame::Sims2] {
+                    if let Some(path) = utils::detect_game_path(game) {
+                        game_paths.insert(game.clone(), path);
+                    }
+                }
 
-                if let Some(path) = path {
-                    let mods = utils::mods_path(&path);
-                    let saves = utils::saves_path(&path);
+                // Set active game to first detected (prefer Sims4 > Sims3 > Sims2)
+                let active_game = if game_paths.contains_key(&SimsGame::Sims4) {
+                    SimsGame::Sims4
+                } else if game_paths.contains_key(&SimsGame::Sims3) {
+                    SimsGame::Sims3
+                } else if game_paths.contains_key(&SimsGame::Sims2) {
+                    SimsGame::Sims2
+                } else {
+                    SimsGame::Sims4 // default even if not detected
+                };
 
-                    // Start file watcher before acquiring lock
-                    let watcher_result = watcher::file_watcher::start_watching(
+                // Start file watcher for active game's paths if available
+                let watcher_result = if let Some(path) = game_paths.get(&active_game) {
+                    let mods = utils::mods_path(path);
+                    let saves = utils::saves_path(path);
+                    Some(watcher::file_watcher::start_watching(
                         &mods.to_string_lossy(),
                         &saves.to_string_lossy(),
                         handle,
-                    );
+                    ))
+                } else {
+                    None
+                };
 
-                    // Acquire lock only to update state
-                    let mut app_state = state_clone.lock().await;
-                    app_state.sims4_path = Some(path);
-                    // Store watcher so it lives as long as AppState
-                    if let Ok(w) = watcher_result {
-                        app_state.file_watcher = Some(w);
-                    }
+                // Acquire lock only to update state
+                let mut app_state = state_clone.lock().await;
+                app_state.game_paths = game_paths;
+                app_state.active_game = active_game;
+                if let Some(Ok(w)) = watcher_result {
+                    app_state.file_watcher = Some(w);
                 }
             });
 
@@ -101,8 +118,11 @@ pub fn run() {
             commands::session::disconnect_peer,
             commands::session::get_session_status,
             commands::files::scan_files,
-            commands::files::get_sims4_path,
-            commands::files::set_sims4_path,
+            commands::files::get_game_path,
+            commands::files::set_game_path,
+            commands::files::get_active_game,
+            commands::files::set_active_game,
+            commands::files::get_all_game_paths,
             commands::sync::compute_sync_plan,
             commands::sync::execute_sync,
             commands::sync::resolve_conflict,

@@ -33,16 +33,28 @@ export async function getSessionStatus(): Promise<SessionStatus> {
   return invoke("get_session_status");
 }
 
-export async function scanFiles(): Promise<FileManifest> {
-  return invoke("scan_files");
+export async function scanFiles(game?: SimsGame): Promise<FileManifest> {
+  return invoke("scan_files", { game: game ?? null });
 }
 
-export async function getSims4Path(): Promise<string> {
-  return invoke("get_sims4_path");
+export async function getGamePath(game: SimsGame): Promise<string> {
+  return invoke("get_game_path", { game });
 }
 
-export async function setSims4Path(path: string): Promise<void> {
-  return invoke("set_sims4_path", { path });
+export async function setGamePath(game: SimsGame, path: string): Promise<void> {
+  return invoke("set_game_path", { game, path });
+}
+
+export async function getActiveGame(): Promise<SimsGame> {
+  return invoke("get_active_game");
+}
+
+export async function setActiveGame(game: SimsGame): Promise<void> {
+  return invoke("set_active_game", { game });
+}
+
+export async function getAllGamePaths(): Promise<Record<string, string | null>> {
+  return invoke("get_all_game_paths");
 }
 
 export async function computeSyncPlan(peerId?: string): Promise<SyncPlan> {
@@ -129,20 +141,21 @@ export async function bulkSetTags(paths: string[], tags: string[]): Promise<void
 }
 
 // Install
-export async function installModFiles(filePaths: string[]): Promise<InstallResult[]> {
-  return invoke("install_mod_files", { filePaths });
+export async function installModFiles(filePaths: string[], game?: SimsGame): Promise<InstallResult[]> {
+  return invoke("install_mod_files", { filePaths, game: game ?? null });
 }
 
 export async function confirmInstallDuplicate(
   source: string,
   strategy: "overwrite" | "rename",
+  game?: SimsGame,
 ): Promise<InstallResult> {
-  return invoke("confirm_install_duplicate", { source, strategy });
+  return invoke("confirm_install_duplicate", { source, strategy, game: game ?? null });
 }
 
 // Backup
-export async function createBackup(label: string): Promise<BackupInfo> {
-  return invoke("create_backup", { label });
+export async function createBackup(label: string, game?: SimsGame): Promise<BackupInfo> {
+  return invoke("create_backup", { label, game: game ?? null });
 }
 
 export async function listBackups(): Promise<BackupInfo[]> {

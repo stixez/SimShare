@@ -38,7 +38,8 @@ function App() {
         session: demoSession,
         syncPlan: demoSyncPlan,
         profiles: demoProfiles,
-        sims4Path: "C:\\Users\\Player\\Documents\\Electronic Arts\\The Sims 4",
+        gamePaths: { Sims4: "C:\\Users\\Player\\Documents\\Electronic Arts\\The Sims 4" },
+        activeGame: "Sims4" as const,
       });
       useLogStore.setState({ logs: demoLogs });
     }

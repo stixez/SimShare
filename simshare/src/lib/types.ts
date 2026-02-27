@@ -106,6 +106,7 @@ export interface BackupInfo {
   total_size: number;
   mods_count: number;
   saves_count: number;
+  game: SimsGame;
 }
 
 export interface InstallResult {

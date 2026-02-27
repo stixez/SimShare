@@ -63,7 +63,7 @@ pub async fn execute_sync(
     let (plan, base_path, resolved_id) = {
         let mut app_state = state.lock().await;
         let resolved_id = app_state.resolve_peer_id(peer_id)?;
-        let base = app_state.sims4_path.clone().ok_or("Sims 4 path not set")?;
+        let base = app_state.active_game_path()?;
 
         let conn = app_state
             .connections

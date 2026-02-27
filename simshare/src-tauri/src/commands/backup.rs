@@ -1,4 +1,4 @@
-use crate::state::AppState;
+use crate::state::{AppState, SimsGame};
 use crate::utils;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -20,6 +20,12 @@ pub struct BackupInfo {
     pub total_size: u64,
     pub mods_count: usize,
     pub saves_count: usize,
+    #[serde(default = "default_game")]
+    pub game: String,
+}
+
+fn default_game() -> String {
+    "Sims4".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,10 +75,8 @@ fn copy_dir_to_backup(
             .map_err(|e| e.to_string())?;
 
         // Validate no path traversal in relative path
-        for component in rel.components() {
-            if matches!(component, std::path::Component::ParentDir) {
-                continue; // skip files with '..' in path
-            }
+        if rel.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+            continue; // skip files with '..' in path
         }
 
         let dest_dir = backup_dir.join(category);
@@ -121,11 +125,29 @@ fn count_files(dir: &Path) -> usize {
         .count()
 }
 
+fn parse_game(game: &str) -> Result<SimsGame, String> {
+    match game {
+        "Sims2" => Ok(SimsGame::Sims2),
+        "Sims3" => Ok(SimsGame::Sims3),
+        "Sims4" => Ok(SimsGame::Sims4),
+        _ => Err(format!("Unknown game: {}", game)),
+    }
+}
+
+fn game_to_string(game: &SimsGame) -> String {
+    match game {
+        SimsGame::Sims2 => "Sims2".to_string(),
+        SimsGame::Sims3 => "Sims3".to_string(),
+        SimsGame::Sims4 => "Sims4".to_string(),
+    }
+}
+
 #[tauri::command]
 pub async fn create_backup(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
     app: tauri::AppHandle,
     label: String,
+    game: Option<String>,
 ) -> Result<BackupInfo, String> {
     // Validate label
     let label = label.trim().to_string();
@@ -137,12 +159,15 @@ pub async fn create_backup(
         return Err("Label contains invalid characters".into());
     }
 
-    let base = {
+    let (base, target_game) = {
         let app_state = state.lock().await;
-        app_state
-            .sims4_path
-            .clone()
-            .ok_or("Sims 4 path not set")?
+        let target_game = match game {
+            Some(ref g) => parse_game(g)?,
+            None => app_state.active_game.clone(),
+        };
+        let path = app_state.game_paths.get(&target_game).cloned()
+            .ok_or_else(|| format!("{} path not set", utils::game_label(&target_game)))?;
+        (path, target_game)
     };
 
     let mods_dir = utils::mods_path(&base);
@@ -176,6 +201,7 @@ pub async fn create_backup(
         total_size,
         mods_count,
         saves_count,
+        game: game_to_string(&target_game),
     };
 
     let manifest = BackupManifest {
@@ -220,14 +246,6 @@ pub async fn restore_backup(
 ) -> Result<(), String> {
     utils::sanitize_id(&id)?;
 
-    let base = {
-        let app_state = state.lock().await;
-        app_state
-            .sims4_path
-            .clone()
-            .ok_or("Sims 4 path not set")?
-    };
-
     let backup_dir = utils::backups_dir().join(&id);
     let manifest_path = backup_dir.join("manifest.json");
 
@@ -237,6 +255,14 @@ pub async fn restore_backup(
 
     let data = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
     let manifest: BackupManifest = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+
+    // Resolve game from backup manifest, fall back to active game
+    let backup_game = parse_game(&manifest.info.game).unwrap_or(SimsGame::Sims4);
+    let base = {
+        let app_state = state.lock().await;
+        app_state.game_paths.get(&backup_game).cloned()
+            .ok_or_else(|| format!("{} path not set. Configure it before restoring this backup.", utils::game_label(&backup_game)))?
+    };
 
     // Create safety backup first
     let safety_label = format!("Pre-restore safety backup ({})", manifest.info.label);
@@ -269,6 +295,7 @@ pub async fn restore_backup(
         total_size: safety_size,
         mods_count: safety_mods,
         saves_count: safety_saves,
+        game: game_to_string(&backup_game),
     };
     let safety_manifest = BackupManifest {
         info: safety_info,
@@ -287,6 +314,11 @@ pub async fn restore_backup(
         }
         let has_traversal = rel.components().any(|c| matches!(c, std::path::Component::ParentDir));
         if has_traversal {
+            continue;
+        }
+
+        // Validate category is one of the known values
+        if entry.category != "mods" && entry.category != "saves" {
             continue;
         }
 

@@ -101,7 +101,7 @@ pub async fn load_profile(
 ) -> Result<ProfileComparison, String> {
     sanitize_id(&id)?;
     let app_state = state.lock().await;
-    let _base = app_state.sims4_path.as_ref().ok_or("Sims 4 path not set")?;
+    let _base = app_state.active_game_path()?;
 
     let dir = utils::profiles_dir();
     let path = dir.join(format!("{}.json", id));

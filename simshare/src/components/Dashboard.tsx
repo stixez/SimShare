@@ -19,8 +19,32 @@ export default function Dashboard() {
   const setIsScanning = useAppStore((s) => s.setIsScanning);
   const discoveredPeers = useAppStore((s) => s.discoveredPeers);
   const addLog = useLogStore((s) => s.addLog);
+  const activeGame = useAppStore((s) => s.activeGame);
+  const setActiveGame = useAppStore((s) => s.setActiveGame);
   const { host, join, connectTo, leave, isLoading } = useSession();
   const { computePlan, executeSync, resolveAll, isLoading: isSyncLoading } = useSync();
+  const gameLabels: Record<string, string> = { Sims2: "Sims 2", Sims3: "Sims 3", Sims4: "Sims 4" };
+  const activeGameLabel = gameLabels[activeGame] || "Sims 4";
+  const games = ["Sims2", "Sims3", "Sims4"] as const;
+
+  const handleGameSwitch = async (game: typeof games[number]) => {
+    try {
+      await cmd.setActiveGame(game);
+      setActiveGame(game);
+      // Re-scan for the new game
+      setIsScanning(true);
+      try {
+        const m = await cmd.scanFiles(game);
+        setManifest(m);
+      } catch (scanErr) {
+        addLog(`Scan for ${gameLabels[game]}: ${scanErr}`, "warning");
+      } finally {
+        setIsScanning(false);
+      }
+    } catch (e) {
+      addLog(`Failed to switch game: ${e}`, "error");
+    }
+  };
   const [hostName, setHostName] = useState("");
   const [usePin, setUsePin] = useState(false);
   const [pinCopied, setPinCopied] = useState(false);
@@ -71,9 +95,25 @@ export default function Dashboard() {
   if (!isConnected) {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
-        <div className="text-center mb-8">
+        <div className="text-center mb-4">
           <h2 className="text-2xl font-bold mb-2">Welcome to SimShare</h2>
-          <p className="text-txt-dim">Sync your Sims 4 mods and saves with friends over LAN</p>
+          <p className="text-txt-dim">Sync your mods and saves with friends over LAN</p>
+        </div>
+
+        <div className="flex justify-center gap-2 mb-4">
+          {games.map((g) => (
+            <button
+              key={g}
+              onClick={() => handleGameSwitch(g)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                activeGame === g
+                  ? "bg-accent text-white border-accent"
+                  : "bg-bg-card border-border text-txt-dim hover:bg-bg-card-hover"
+              }`}
+            >
+              {gameLabels[g]}
+            </button>
+          ))}
         </div>
 
         <div className="grid grid-cols-2 gap-4">

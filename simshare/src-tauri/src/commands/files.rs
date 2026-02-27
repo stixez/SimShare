@@ -1,4 +1,4 @@
-use crate::state::{AppState, FileInfo, FileManifest, FileType};
+use crate::state::{AppState, FileInfo, FileManifest, FileType, SimsGame};
 use crate::utils;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -6,7 +6,29 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use walkdir::WalkDir;
 
-fn scan_directory(base_path: &str, sub_dir: &str, file_type_fn: impl Fn(&str) -> FileType) -> HashMap<String, FileInfo> {
+fn parse_game(game: &str) -> Result<SimsGame, String> {
+    match game {
+        "Sims2" => Ok(SimsGame::Sims2),
+        "Sims3" => Ok(SimsGame::Sims3),
+        "Sims4" => Ok(SimsGame::Sims4),
+        _ => Err(format!("Unknown game: {}", game)),
+    }
+}
+
+fn game_to_string(game: &SimsGame) -> String {
+    match game {
+        SimsGame::Sims2 => "Sims2".to_string(),
+        SimsGame::Sims3 => "Sims3".to_string(),
+        SimsGame::Sims4 => "Sims4".to_string(),
+    }
+}
+
+fn scan_directory(
+    base_path: &str,
+    sub_dir: &str,
+    file_type_fn: impl Fn(&str) -> FileType,
+    valid_extensions: &[&str],
+) -> HashMap<String, FileInfo> {
     let dir = std::path::PathBuf::from(base_path).join(sub_dir);
     let mut files = HashMap::new();
 
@@ -30,12 +52,7 @@ fn scan_directory(base_path: &str, sub_dir: &str, file_type_fn: impl Fn(&str) ->
             .unwrap_or("")
             .to_lowercase();
 
-        if sub_dir == "Mods"
-            && !matches!(
-                ext.as_str(),
-                "package" | "ts4script" | "sims3pack" | "zip" | "bpi" | "cfg" | "txt"
-            )
-        {
+        if sub_dir == "Mods" && !valid_extensions.contains(&ext.as_str()) {
             continue;
         }
 
@@ -99,27 +116,47 @@ fn compute_file_hash(path: &std::path::Path) -> Result<String, String> {
 #[tauri::command]
 pub async fn scan_files(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
+    game: Option<String>,
 ) -> Result<FileManifest, String> {
-    let base_path = {
+    let (base_path, active_game) = {
         let mut app_state = state.lock().await;
+        let target_game = match game {
+            Some(ref g) => parse_game(g)?,
+            None => app_state.active_game.clone(),
+        };
         let path = app_state
-            .sims4_path
-            .clone()
-            .or_else(|| utils::detect_sims4_path())
-            .ok_or("Sims 4 path not found. Please set it manually.")?;
-        if app_state.sims4_path.is_none() {
-            app_state.sims4_path = Some(path.clone());
-        }
-        path
+            .game_paths
+            .get(&target_game)
+            .cloned()
+            .or_else(|| {
+                let detected = utils::detect_game_path(&target_game);
+                if let Some(ref p) = detected {
+                    app_state.game_paths.insert(target_game.clone(), p.clone());
+                }
+                detected
+            })
+            .ok_or_else(|| {
+                format!(
+                    "{} path not found. Please set it manually.",
+                    utils::game_label(&target_game)
+                )
+            })?;
+        (path, target_game)
     };
 
-    let manifest = tokio::task::spawn_blocking(move || {
-        let mods = scan_directory(&base_path, "Mods", |ext| match ext {
-            "ts4script" | "zip" => FileType::Mod,
-            _ => FileType::CustomContent,
-        });
+    let extensions: Vec<String> = utils::valid_mod_extensions(&active_game)
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
 
-        let saves = scan_directory(&base_path, "Saves", |_| FileType::Save);
+    let manifest = tokio::task::spawn_blocking(move || {
+        let ext_refs: Vec<&str> = extensions.iter().map(|s| s.as_str()).collect();
+        let mods = scan_directory(&base_path, "Mods", |ext| match ext {
+            "ts4script" | "zip" | "sims3pack" => FileType::Mod,
+            _ => FileType::CustomContent,
+        }, &ext_refs);
+
+        let saves = scan_directory(&base_path, "Saves", |_| FileType::Save, &[]);
 
         let mut all_files = mods;
         all_files.extend(saves);
@@ -138,33 +175,77 @@ pub async fn scan_files(
 }
 
 #[tauri::command]
-pub async fn get_sims4_path(
+pub async fn get_game_path(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
+    game: String,
 ) -> Result<String, String> {
+    let target_game = parse_game(&game)?;
     let app_state = state.lock().await;
     app_state
-        .sims4_path
-        .clone()
-        .or_else(|| utils::detect_sims4_path())
-        .ok_or("Sims 4 path not found".to_string())
+        .game_paths
+        .get(&target_game)
+        .cloned()
+        .or_else(|| utils::detect_game_path(&target_game))
+        .ok_or_else(|| format!("{} path not found", utils::game_label(&target_game)))
 }
 
 #[tauri::command]
-pub async fn set_sims4_path(
+pub async fn set_game_path(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
+    game: String,
     path: String,
 ) -> Result<(), String> {
-    let sims4 = std::path::Path::new(&path);
-    if !sims4.exists() {
+    let target_game = parse_game(&game)?;
+    let game_dir = std::path::Path::new(&path);
+    if !game_dir.exists() {
         return Err("Path does not exist".to_string());
     }
-    // Validate this looks like a Sims 4 folder
-    let has_mods = sims4.join("Mods").exists();
-    let has_saves = sims4.join("Saves").exists();
-    if !has_mods && !has_saves {
-        return Err("This doesn't look like a Sims 4 folder (no Mods or Saves directory found)".to_string());
+    // Canonicalize to resolve symlinks and normalize the path
+    let canonical = std::fs::canonicalize(game_dir)
+        .map_err(|e| format!("Cannot resolve path: {}", e))?;
+    // Validate this looks like a Sims folder
+    let has_mods = canonical.join("Mods").exists();
+    let has_saves = canonical.join("Saves").exists();
+    // Sims 2 uses "Downloads" instead of "Mods" sometimes
+    let has_downloads = canonical.join("Downloads").exists();
+    if !has_mods && !has_saves && !has_downloads {
+        return Err(format!(
+            "This doesn't look like a {} folder (no Mods or Saves directory found)",
+            utils::game_label(&target_game)
+        ));
     }
     let mut app_state = state.lock().await;
-    app_state.sims4_path = Some(path);
+    app_state.game_paths.insert(target_game, canonical.to_string_lossy().to_string());
     Ok(())
+}
+
+#[tauri::command]
+pub async fn get_active_game(
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+) -> Result<String, String> {
+    let app_state = state.lock().await;
+    Ok(game_to_string(&app_state.active_game))
+}
+
+#[tauri::command]
+pub async fn set_active_game(
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+    game: String,
+) -> Result<(), String> {
+    let target_game = parse_game(&game)?;
+    let mut app_state = state.lock().await;
+    app_state.active_game = target_game;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_all_game_paths(
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+) -> Result<HashMap<String, Option<String>>, String> {
+    let app_state = state.lock().await;
+    let mut result = HashMap::new();
+    for game in &[SimsGame::Sims2, SimsGame::Sims3, SimsGame::Sims4] {
+        result.insert(game_to_string(game), app_state.game_paths.get(game).cloned());
+    }
+    Ok(result)
 }

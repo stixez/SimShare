@@ -6,6 +6,7 @@ import type {
   Page,
   PeerInfo,
   SessionStatus,
+  SimsGame,
   SyncPlan,
   SyncProgress,
 } from "../lib/types";
@@ -14,8 +15,11 @@ interface AppState {
   page: Page;
   setPage: (page: Page) => void;
 
-  sims4Path: string | null;
-  setSims4Path: (path: string) => void;
+  gamePaths: Partial<Record<SimsGame, string>>;
+  setGamePaths: (paths: Partial<Record<SimsGame, string>>) => void;
+
+  activeGame: SimsGame;
+  setActiveGame: (game: SimsGame) => void;
 
   manifest: FileManifest | null;
   setManifest: (manifest: FileManifest) => void;
@@ -58,8 +62,11 @@ export const useAppStore = create<AppState>((set) => ({
   page: "dashboard",
   setPage: (page) => set({ page }),
 
-  sims4Path: null,
-  setSims4Path: (path) => set({ sims4Path: path }),
+  gamePaths: {},
+  setGamePaths: (paths) => set({ gamePaths: paths }),
+
+  activeGame: "Sims4",
+  setActiveGame: (game) => set({ activeGame: game }),
 
   manifest: null,
   setManifest: (manifest) => set({ manifest }),

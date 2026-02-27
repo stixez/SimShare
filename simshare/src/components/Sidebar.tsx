@@ -14,10 +14,18 @@ const navItems: { page: Page; label: string; icon: typeof LayoutDashboard }[] = 
   { page: "settings", label: "Settings", icon: Settings },
 ];
 
+const GAME_LABELS: Record<string, string> = {
+  Sims2: "Sims 2",
+  Sims3: "Sims 3",
+  Sims4: "Sims 4",
+};
+
 export default function Sidebar() {
   const page = useAppStore((s) => s.page);
   const setPage = useAppStore((s) => s.setPage);
   const session = useAppStore((s) => s.session);
+  const activeGame = useAppStore((s) => s.activeGame);
+  const activeGameLabel = GAME_LABELS[activeGame] || "Sims 4";
 
   const [version, setVersion] = useState("...");
   useEffect(() => {
@@ -30,7 +38,12 @@ export default function Sidebar() {
     <aside className="w-[180px] h-screen bg-bg-card border-r border-border flex flex-col shrink-0">
       <div className="p-4 border-b border-border">
         <h1 className="text-lg font-bold text-accent-light tracking-tight">SimShare</h1>
-        <p className="text-[10px] text-txt-dim mt-0.5">v{version}</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-[10px] text-txt-dim">v{version}</p>
+          <span className="text-[10px] bg-accent/20 text-accent-light px-1.5 py-0.5 rounded-full font-medium">
+            {activeGameLabel}
+          </span>
+        </div>
       </div>
 
       <nav className="flex-1 py-2">
