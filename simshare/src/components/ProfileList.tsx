@@ -205,6 +205,7 @@ export default function ProfileList() {
               onChange={(e) => setName(e.target.value)}
               maxLength={64}
               placeholder="Profile name..."
+              aria-label="Profile name"
               className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
             />
             <textarea
@@ -212,6 +213,7 @@ export default function ProfileList() {
               onChange={(e) => setDesc(e.target.value)}
               maxLength={256}
               placeholder="Description..."
+              aria-label="Profile description"
               rows={2}
               className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent resize-none"
             />

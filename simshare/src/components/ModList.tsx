@@ -119,6 +119,16 @@ export default function ModList() {
     return Array.from(tags).sort();
   }, [modTags]);
 
+  const tagCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const tags of Object.values(modTags)) {
+      for (const t of tags) {
+        counts[t] = (counts[t] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [modTags]);
+
   const mods = useMemo(() => {
     if (!manifest) return [];
     return Object.values(manifest.files)
@@ -160,6 +170,7 @@ export default function ModList() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as ModSortBy)}
+              aria-label="Sort mods by"
               className="bg-transparent text-xs text-txt-dim focus:outline-none cursor-pointer"
             >
               <option value="name">Name</option>
@@ -194,6 +205,7 @@ export default function ModList() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search mods..."
+            aria-label="Search mods"
             className="w-full bg-bg-card border border-border rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-accent"
           />
         </div>
@@ -235,7 +247,7 @@ export default function ModList() {
                   : "bg-bg-card border border-border text-txt-dim hover:border-accent/50"
               }`}
             >
-              {tag}
+              {tag} ({tagCounts[tag] || 0})
             </button>
           ))}
         </div>
@@ -246,6 +258,10 @@ export default function ModList() {
           <Upload size={12} />
           Drop .package files here to install
         </p>
+      )}
+
+      {bulkMode && selected.size === 0 && (
+        <p className="text-xs text-txt-dim">Select mods to tag them, or click Cancel to exit</p>
       )}
 
       {bulkMode && selected.size > 0 && (
@@ -275,6 +291,7 @@ export default function ModList() {
               <button
                 onClick={() => setBulkTagInput(false)}
                 className="text-txt-dim hover:text-txt"
+                aria-label="Cancel bulk tag"
               >
                 <X size={12} />
               </button>
@@ -313,6 +330,12 @@ export default function ModList() {
             <Package size={40} className="mx-auto mb-3 opacity-40" />
             <p>No mods found</p>
             <p className="text-xs mt-1">Make sure your Sims 4 Mods folder path is correct</p>
+            <button
+              onClick={() => useAppStore.getState().setPage("settings")}
+              className="text-accent-light hover:underline text-xs cursor-pointer mt-2 inline-block"
+            >
+              Go to Settings
+            </button>
           </div>
         ) : (
           mods.map((mod) => (

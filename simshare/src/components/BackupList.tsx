@@ -61,6 +61,11 @@ export default function BackupList() {
       await cmd.restoreBackup(id);
       const updated = await cmd.listBackups();
       setBackups(updated);
+      // Re-scan manifest so other pages reflect the restored files
+      try {
+        const m = await cmd.scanFiles();
+        useAppStore.getState().setManifest(m);
+      } catch {}
       addLog("Backup restored (safety backup created)", "success");
     } catch (e) {
       addLog(`Restore failed: ${e}`, "error");
@@ -109,6 +114,7 @@ export default function BackupList() {
             onChange={(e) => setLabel(e.target.value)}
             maxLength={128}
             placeholder="Backup label (e.g. Before installing new mods)..."
+            aria-label="Backup label"
             className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
           />
           <p className="text-xs text-txt-dim">
@@ -165,18 +171,23 @@ export default function BackupList() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => handleRestore(backup.id)}
-                    disabled={restoring}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
-                      restoreConfirm === backup.id
-                        ? "bg-status-yellow/20 text-status-yellow"
-                        : "bg-bg border border-border text-txt-dim hover:bg-bg-card-hover"
-                    } disabled:opacity-50`}
-                  >
-                    <RotateCcw size={12} />
-                    {restoreConfirm === backup.id ? "Confirm Restore?" : "Restore"}
-                  </button>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <button
+                      onClick={() => handleRestore(backup.id)}
+                      disabled={restoring}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                        restoreConfirm === backup.id
+                          ? "bg-status-yellow/20 text-status-yellow"
+                          : "bg-bg border border-border text-txt-dim hover:bg-bg-card-hover"
+                      } disabled:opacity-50`}
+                    >
+                      <RotateCcw size={12} />
+                      {restoreConfirm === backup.id ? "Confirm Restore?" : "Restore"}
+                    </button>
+                    {restoreConfirm === backup.id && (
+                      <span className="text-[10px] text-txt-dim">Replaces current files. A safety backup will be created first.</span>
+                    )}
+                  </div>
                   <button
                     onClick={() => handleDelete(backup.id)}
                     className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${

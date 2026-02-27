@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Monitor, Users, Package, Save, HardDrive, RefreshCw, AlertTriangle, Lock, Copy, Check, LayoutGrid, Camera, FolderSync, Gamepad2, ChevronDown, ChevronRight } from "lucide-react";
+import { Monitor, Users, Package, Save, HardDrive, RefreshCw, AlertTriangle, Lock, Copy, Check, LayoutGrid, Camera, FolderSync, Gamepad2, ChevronDown, ChevronRight, FolderOpen, Settings } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
 import type { SyncFolderPermissions, GameInfo } from "../lib/types";
 import { useAppStore } from "../stores/useAppStore";
 import { useLogStore } from "../stores/useLogStore";
@@ -23,6 +24,9 @@ export default function Dashboard() {
   const addLog = useLogStore((s) => s.addLog);
   const activeGame = useAppStore((s) => s.activeGame);
   const setActiveGame = useAppStore((s) => s.setActiveGame);
+  const gamePaths = useAppStore((s) => s.gamePaths);
+  const setGamePaths = useAppStore((s) => s.setGamePaths);
+  const setPage = useAppStore((s) => s.setPage);
   const { host, join, connectTo, leave, isLoading } = useSession();
   const { computePlan, executeSync, resolveAll, isLoading: isSyncLoading } = useSync();
   const gameLabels: Record<string, string> = { Sims2: "Sims 2", Sims3: "Sims 3", Sims4: "Sims 4" };
@@ -167,6 +171,66 @@ export default function Dashboard() {
           ))}
         </div>
 
+        {!gamePaths[activeGame] && (
+          <div className="bg-status-yellow/10 border border-status-yellow/30 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-status-yellow/20 flex items-center justify-center shrink-0">
+              <FolderOpen size={20} className="text-status-yellow" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">Set your {activeGameLabel} folder</p>
+              <p className="text-xs text-txt-dim mt-0.5">SimShare needs to know where your game files are before it can scan.</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={async () => {
+                  try {
+                    const selected = await open({ directory: true });
+                    if (selected) {
+                      const path = typeof selected === "string" ? selected : selected;
+                      await cmd.setGamePath(activeGame, path);
+                      setGamePaths({ ...gamePaths, [activeGame]: path });
+                      toastSuccess(`${activeGameLabel} path saved`);
+                      setIsScanning(true);
+                      try {
+                        const m = await cmd.scanFiles(activeGame);
+                        setManifest(m);
+                      } finally {
+                        setIsScanning(false);
+                      }
+                    }
+                  } catch (e) {
+                    toastError(`Failed to set path`);
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-status-yellow/20 hover:bg-status-yellow/30 text-status-yellow text-sm font-medium transition-colors"
+              >
+                <FolderOpen size={14} />
+                Browse
+              </button>
+              <button
+                onClick={() => setPage("settings")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-card border border-border hover:bg-bg-card-hover text-xs text-txt-dim transition-colors"
+              >
+                <Settings size={12} />
+                Settings
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label className="text-xs text-txt-dim mb-1.5 block">Your Name</label>
+          <input
+            type="text"
+            value={hostName}
+            onChange={(e) => setHostName(e.target.value.replace(/[^\w\s-]/g, "").slice(0, 32))}
+            maxLength={32}
+            placeholder="Enter your name..."
+            aria-label="Your name"
+            className="w-full bg-bg-card border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
+          />
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-bg-card rounded-xl border border-border p-6 hover:border-accent/50 transition-colors">
             <div className="flex items-center gap-3 mb-4">
@@ -178,14 +242,6 @@ export default function Dashboard() {
             <p className="text-txt-dim text-sm mb-4">
               Share your mods and saves with others on your network.
             </p>
-            <input
-              type="text"
-              value={hostName}
-              onChange={(e) => setHostName(e.target.value.replace(/[^\w\s-]/g, "").slice(0, 32))}
-              maxLength={32}
-              placeholder="Your name..."
-              className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:border-accent"
-            />
             <label className="flex items-center gap-2 mb-3 cursor-pointer text-sm text-txt-dim">
               <input
                 type="checkbox"
@@ -289,6 +345,7 @@ export default function Dashboard() {
                     value={pinInput}
                     onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
                     placeholder="0000"
+                    aria-label="Session PIN"
                     className="flex-1 bg-bg-card border border-border rounded-lg px-3 py-2 text-center text-lg font-mono tracking-widest focus:outline-none focus:border-accent"
                     autoFocus
                     onKeyDown={(e) => {

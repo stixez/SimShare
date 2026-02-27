@@ -46,7 +46,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 py-2">
+      <nav className="flex-1 py-2" aria-label="Main navigation">
         {navItems.map(({ page: p, label, icon: Icon }) => (
           <button
             key={p}

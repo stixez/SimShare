@@ -70,6 +70,7 @@ export default function SaveList() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SaveSortBy)}
+              aria-label="Sort saves by"
               className="bg-transparent text-xs text-txt-dim focus:outline-none cursor-pointer"
             >
               <option value="date">Date</option>
@@ -88,6 +89,7 @@ export default function SaveList() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search saves..."
+          aria-label="Search saves"
           className="w-full bg-bg-card border border-border rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-accent"
         />
       </div>
@@ -121,6 +123,12 @@ export default function SaveList() {
           <div className="text-center py-12 text-txt-dim">
             <Save size={40} className="mx-auto mb-3 opacity-40" />
             <p>No save files found</p>
+            <button
+              onClick={() => useAppStore.getState().setPage("settings")}
+              className="text-accent-light hover:underline text-xs cursor-pointer mt-2 inline-block"
+            >
+              Go to Settings
+            </button>
           </div>
         ) : (
           saves.map((save) => (

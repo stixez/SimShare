@@ -6,13 +6,14 @@ export default function DonateModal() {
   const setShowDonate = useAppStore((s) => s.setShowDonate);
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowDonate(false)}>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowDonate(false)} role="dialog" aria-modal="true" aria-label="Support SimShare">
       <div className="bg-bg-card rounded-2xl border border-border p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-lg">Support SimShare</h3>
           <button
             onClick={() => setShowDonate(false)}
             className="p-1 rounded-lg hover:bg-bg-card-hover transition-colors"
+            aria-label="Close"
           >
             <X size={18} className="text-txt-dim" />
           </button>

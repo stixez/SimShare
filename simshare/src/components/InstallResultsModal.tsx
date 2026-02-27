@@ -11,11 +11,11 @@ export default function InstallResultsModal({ results, onClose, onResolveDuplica
   const fileName = (path: string) => path.split(/[/\\]/).pop() || path;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Install results">
       <div className="bg-bg-card rounded-xl border border-border shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="font-semibold">Install Results</h3>
-          <button onClick={onClose} className="text-txt-dim hover:text-txt">
+          <button onClick={onClose} className="text-txt-dim hover:text-txt" aria-label="Close">
             <X size={18} />
           </button>
         </div>

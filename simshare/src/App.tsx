@@ -13,6 +13,7 @@ import InstallResultsModal from "./components/InstallResultsModal";
 import { useAppStore } from "./stores/useAppStore";
 import { useLogStore } from "./stores/useLogStore";
 import { useTauriEvents } from "./hooks/useTauriEvents";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
   isDemoMode,
   demoManifest,
@@ -30,6 +31,7 @@ function App() {
   const isDragging = useAppStore((s) => s.isDragging);
   const addLog = useLogStore((s) => s.addLog);
   useTauriEvents();
+  useKeyboardShortcuts();
 
   const [installResults, setInstallResults] = useState<InstallResult[] | null>(null);
 
@@ -72,6 +74,17 @@ function App() {
     window.addEventListener("simshare-drop", handleDrop);
     return () => window.removeEventListener("simshare-drop", handleDrop);
   }, [handleDrop]);
+
+  // Escape key closes install results modal
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && installResults) {
+        setInstallResults(null);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [installResults]);
 
   const handleResolveDuplicate = async (source: string, strategy: "overwrite" | "rename") => {
     try {

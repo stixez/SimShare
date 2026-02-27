@@ -64,7 +64,7 @@ export default function Settings() {
 
   const handlePathSubmit = async (game: SimsGame) => {
     const input = pathInputs[game]?.trim();
-    if (!input) return;
+    if (!input || input === gamePaths[game]) return;
     try {
       await cmd.setGamePath(game, input);
       setGamePaths({ ...gamePaths, [game]: input });
@@ -80,6 +80,8 @@ export default function Settings() {
     try {
       await cmd.setActiveGame(game);
       setActiveGame(game);
+      // Invalidate manifest so Dashboard triggers a fresh scan for the new game
+      useAppStore.getState().setManifest(null);
       addLog(`Active game set to ${GAMES.find((g) => g.key === game)?.label}`, "info");
       toastSuccess(`Switched to ${GAMES.find((g) => g.key === game)?.label}`);
     } catch (e) {
@@ -186,7 +188,12 @@ export default function Settings() {
               onChange={(e) =>
                 setPathInputs((prev) => ({ ...prev, [key]: e.target.value }))
               }
+              onBlur={() => handlePathSubmit(key)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handlePathSubmit(key);
+              }}
               placeholder={`Path to The ${label} folder...`}
+              aria-label={`${label} folder path`}
               className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
             />
             <button
@@ -197,12 +204,6 @@ export default function Settings() {
               Browse
             </button>
           </div>
-          <button
-            onClick={() => handlePathSubmit(key)}
-            className="bg-accent hover:bg-accent-light text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-          >
-            Save Path
-          </button>
         </div>
       ))}
 
@@ -220,6 +221,7 @@ export default function Settings() {
             onChange={(e) => setPort(e.target.value)}
             min={1024}
             max={65535}
+            aria-label="Session port"
             className="w-32 bg-bg border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
           />
           <button
@@ -262,6 +264,7 @@ export default function Settings() {
             }}
             maxLength={256}
             placeholder="e.g. *.ts4script or Saves/*"
+            aria-label="Sync exclusion pattern"
             className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
           />
           <button

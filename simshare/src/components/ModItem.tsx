@@ -37,6 +37,7 @@ export default function ModItem({
           type="checkbox"
           checked={selected}
           onChange={() => onSelect?.(file.relative_path)}
+          aria-label={`Select ${name}`}
           className="shrink-0 accent-accent"
         />
       )}

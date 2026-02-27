@@ -24,7 +24,7 @@ interface AppState {
   setActiveGame: (game: SimsGame) => void;
 
   manifest: FileManifest | null;
-  setManifest: (manifest: FileManifest) => void;
+  setManifest: (manifest: FileManifest | null) => void;
 
   session: SessionStatus | null;
   setSession: (session: SessionStatus | null) => void;

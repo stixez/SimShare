@@ -67,7 +67,7 @@ export default function TagEditor({ filePath, currentTags, onTagsChanged, onClos
           <Tag size={12} />
           Tags
         </div>
-        <button onClick={onClose} className="text-txt-dim hover:text-txt">
+        <button onClick={onClose} className="text-txt-dim hover:text-txt" aria-label="Close tag editor">
           <X size={14} />
         </button>
       </div>
@@ -98,7 +98,7 @@ export default function TagEditor({ filePath, currentTags, onTagsChanged, onClos
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/20 text-accent-light text-xs font-medium"
               >
                 {tag}
-                <button onClick={() => toggleTag(tag)} className="hover:text-white">
+                <button onClick={() => toggleTag(tag)} className="hover:text-white" aria-label={`Remove tag ${tag}`}>
                   <X size={10} />
                 </button>
               </span>
@@ -116,11 +116,13 @@ export default function TagEditor({ filePath, currentTags, onTagsChanged, onClos
           }}
           maxLength={32}
           placeholder="Custom tag..."
+          aria-label="Custom tag"
           className="flex-1 bg-bg border border-border rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-accent"
         />
         <button
           onClick={addCustom}
           className="p-1 rounded-lg bg-bg border border-border hover:bg-bg-card-hover transition-colors"
+          aria-label="Add custom tag"
         >
           <Plus size={14} className="text-txt-dim" />
         </button>
