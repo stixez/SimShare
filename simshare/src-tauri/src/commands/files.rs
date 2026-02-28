@@ -238,8 +238,10 @@ pub async fn set_game_path(
         return Err("Path does not exist".to_string());
     }
     // Canonicalize to resolve symlinks and normalize the path
-    let canonical = std::fs::canonicalize(game_dir)
-        .map_err(|e| format!("Cannot resolve path: {}", e))?;
+    let canonical = utils::clean_path(
+        std::fs::canonicalize(game_dir)
+            .map_err(|e| format!("Cannot resolve path: {}", e))?,
+    );
     // Validate this looks like a Sims folder — or accept it and create Mods/Saves
     let has_mods = canonical.join("Mods").exists();
     let has_saves = canonical.join("Saves").exists();

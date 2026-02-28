@@ -1,6 +1,19 @@
 use crate::state::SimsGame;
 use std::path::PathBuf;
 
+/// Strip the Windows extended-length path prefix (\\?\) that canonicalize() adds.
+#[allow(dead_code)]
+pub fn clean_path(path: PathBuf) -> PathBuf {
+    #[cfg(target_os = "windows")]
+    {
+        let s = path.to_string_lossy();
+        if let Some(stripped) = s.strip_prefix(r"\\?\") {
+            return PathBuf::from(stripped);
+        }
+    }
+    path
+}
+
 /// Scan all direct children of a directory for a given subfolder path.
 /// Handles localized folder names (e.g. OneDrive/Dokumenti, OneDrive/Documenti).
 fn scan_children_for(parent: &std::path::Path, sub: &std::path::Path) -> Vec<PathBuf> {
