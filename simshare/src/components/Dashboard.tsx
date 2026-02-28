@@ -388,7 +388,25 @@ export default function Dashboard() {
           onDetect={handleDetectPacks}
         />
 
-        {manifest && (
+        {isScanning && !manifest ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-center gap-3 py-4">
+              <RefreshCw size={18} className="animate-spin text-accent-light" />
+              <span className="text-sm text-txt-dim">Scanning your {activeGameLabel} files...</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-bg-card rounded-xl border border-border p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-4 h-4 rounded animate-pulse bg-bg-card-hover" />
+                    <div className="w-20 h-4 rounded animate-pulse bg-bg-card-hover" />
+                  </div>
+                  <div className="w-12 h-8 rounded animate-pulse bg-bg-card-hover" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : manifest ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {[
               { label: "Script Mods", value: modCount, icon: Package, color: "text-accent-light" },
@@ -407,7 +425,7 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
 
         <div className="flex justify-center">
           <button
@@ -505,6 +523,25 @@ export default function Dashboard() {
         </div>
       )}
 
+      {isScanning && !manifest ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-center gap-3 py-2">
+            <RefreshCw size={16} className="animate-spin text-accent-light" />
+            <span className="text-sm text-txt-dim">Scanning files...</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-bg-card rounded-xl border border-border p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-4 h-4 rounded animate-pulse bg-bg-card-hover" />
+                  <div className="w-20 h-4 rounded animate-pulse bg-bg-card-hover" />
+                </div>
+                <div className="w-12 h-8 rounded animate-pulse bg-bg-card-hover" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {[
           { label: "Script Mods", value: modCount, icon: Package, color: "text-accent-light" },
@@ -523,6 +560,7 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+      )}
 
       <PeerList />
     </div>

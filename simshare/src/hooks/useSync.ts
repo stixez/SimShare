@@ -12,6 +12,8 @@ export function useSync() {
   const computePlan = async () => {
     setIsLoading(true);
     try {
+      // Full scan with hashes needed for accurate sync comparison
+      await cmd.scanFiles(undefined, false);
       const plan = await cmd.computeSyncPlan();
       setSyncPlan(plan);
       addLog(`Sync plan: ${plan.actions.length} actions`, "info");

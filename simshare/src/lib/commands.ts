@@ -36,8 +36,8 @@ export async function getSessionStatus(): Promise<SessionStatus> {
   return invoke("get_session_status");
 }
 
-export async function scanFiles(game?: SimsGame): Promise<FileManifest> {
-  return invoke("scan_files", { game: game ?? null });
+export async function scanFiles(game?: SimsGame, quick?: boolean): Promise<FileManifest> {
+  return invoke("scan_files", { game: game ?? null, quick: quick ?? true });
 }
 
 export async function getGamePath(game: SimsGame): Promise<string> {

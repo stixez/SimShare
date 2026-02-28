@@ -61,6 +61,7 @@ fn scan_directory(
     sub_dir: &str,
     file_type_fn: impl Fn(&str) -> FileType,
     valid_extensions: &[&str],
+    compute_hashes: bool,
 ) -> HashMap<String, FileInfo> {
     let dir = std::path::PathBuf::from(base_path).join(sub_dir);
     let mut files = HashMap::new();
@@ -101,9 +102,13 @@ fn scan_directory(
             Err(_) => continue,
         };
 
-        let hash = match compute_file_hash(path) {
-            Ok(h) => h,
-            Err(_) => continue,
+        let hash = if compute_hashes {
+            match compute_file_hash(path) {
+                Ok(h) => h,
+                Err(_) => continue,
+            }
+        } else {
+            String::new()
         };
 
         let modified = metadata
@@ -150,7 +155,9 @@ fn compute_file_hash(path: &std::path::Path) -> Result<String, String> {
 pub async fn scan_files(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
     game: Option<String>,
+    quick: Option<bool>,
 ) -> Result<FileManifest, String> {
+    let compute_hashes = !quick.unwrap_or(false);
     let (base_path, active_game) = {
         let mut app_state = state.lock().await;
         let target_game = match game {
@@ -187,11 +194,11 @@ pub async fn scan_files(
         let mods = scan_directory(&base_path, "Mods", |ext| match ext {
             "ts4script" | "zip" | "sims3pack" => FileType::Mod,
             _ => FileType::CustomContent,
-        }, &ext_refs);
+        }, &ext_refs, compute_hashes);
 
-        let saves = scan_directory(&base_path, "Saves", |_| FileType::Save, &[]);
-        let tray = scan_directory(&base_path, "Tray", |_| FileType::Tray, &[]);
-        let screenshots = scan_directory(&base_path, "Screenshots", |_| FileType::Screenshot, &[]);
+        let saves = scan_directory(&base_path, "Saves", |_| FileType::Save, &[], compute_hashes);
+        let tray = scan_directory(&base_path, "Tray", |_| FileType::Tray, &[], compute_hashes);
+        let screenshots = scan_directory(&base_path, "Screenshots", |_| FileType::Screenshot, &[], compute_hashes);
 
         let mut all_files = mods;
         all_files.extend(saves);
@@ -238,10 +245,19 @@ pub async fn set_game_path(
         return Err("Path does not exist".to_string());
     }
     // Canonicalize to resolve symlinks and normalize the path
-    let canonical = utils::clean_path(
+    let mut canonical = utils::clean_path(
         std::fs::canonicalize(game_dir)
             .map_err(|e| format!("Cannot resolve path: {}", e))?,
     );
+    // Auto-correct if user selected a known subfolder instead of the game root
+    if let Some(folder_name) = canonical.file_name().and_then(|n| n.to_str()) {
+        let known_subfolders = ["Mods", "Saves", "Tray", "Screenshots", "Downloads"];
+        if known_subfolders.iter().any(|&s| s.eq_ignore_ascii_case(folder_name)) {
+            if let Some(parent) = canonical.parent() {
+                canonical = parent.to_path_buf();
+            }
+        }
+    }
     // Validate this looks like a Sims folder — or accept it and create Mods/Saves
     let has_mods = canonical.join("Mods").exists();
     let has_saves = canonical.join("Saves").exists();
