@@ -70,7 +70,7 @@ export default function PeerList() {
                     v{peer.game_info.game_version}
                   </span>
                 )}
-                <span className="text-xs text-txt-dim">{peer.mod_count} mods</span>
+                <span className="text-xs text-txt-dim">{peer.mod_count} files</span>
                 {peerPackCount > 0 && (
                   <button
                     onClick={() => setExpandedPeer(isExpanded ? null : peer.id)}

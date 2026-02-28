@@ -342,7 +342,7 @@ export default function Dashboard() {
                           v{peer.game_info.game_version}
                         </span>
                       )}
-                      <span className="text-txt-dim text-xs">{peer.mod_count} mods</span>
+                      <span className="text-txt-dim text-xs">{peer.mod_count} files</span>
                     </span>
                   </button>
                 ))}
@@ -508,7 +508,7 @@ export default function Dashboard() {
                   v{hostPeer.game_info.game_version}
                 </span>
               )}
-              <span className="text-txt-dim text-xs">{hostPeer.mod_count} mods</span>
+              <span className="text-txt-dim text-xs">{hostPeer.mod_count} files</span>
               {(hostPeer.game_info?.installed_packs?.length ?? 0) > 0 && (
                 <span className="text-txt-dim text-xs">
                   {hostPeer.game_info!.installed_packs!.length} packs

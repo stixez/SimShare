@@ -7,6 +7,34 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use walkdir::WalkDir;
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+struct HashCacheEntry {
+    size: u64,
+    mtime: u64,
+    hash: String,
+}
+
+type HashCache = HashMap<String, HashCacheEntry>;
+
+fn load_hash_cache() -> HashCache {
+    let path = utils::hash_cache_path();
+    if path.exists() {
+        if let Ok(data) = std::fs::read_to_string(&path) {
+            if let Ok(cache) = serde_json::from_str(&data) {
+                return cache;
+            }
+        }
+    }
+    HashMap::new()
+}
+
+fn save_hash_cache(cache: &HashCache) {
+    let path = utils::hash_cache_path();
+    if let Ok(data) = serde_json::to_string(cache) {
+        let _ = std::fs::write(&path, data);
+    }
+}
+
 pub(crate) fn parse_game(game: &str) -> Result<SimsGame, String> {
     match game {
         "Sims2" => Ok(SimsGame::Sims2),
@@ -63,6 +91,7 @@ fn scan_directory(
     file_type_fn: impl Fn(&str) -> FileType + Sync,
     valid_extensions: &[&str],
     compute_hashes: bool,
+    hash_cache: &HashCache,
 ) -> HashMap<String, FileInfo> {
     let dir = std::path::PathBuf::from(base_path).join(sub_dir);
     let mut files = HashMap::new();
@@ -112,12 +141,7 @@ fn scan_directory(
                 .replace('\\', "/");
 
             let metadata = std::fs::metadata(path).ok()?;
-
-            let hash = if compute_hashes {
-                compute_file_hash(path).ok()?
-            } else {
-                String::new()
-            };
+            let file_size = metadata.len();
 
             let modified = metadata
                 .modified()
@@ -126,13 +150,29 @@ fn scan_directory(
                 .map(|d| d.as_secs())
                 .unwrap_or(0);
 
+            let hash = if compute_hashes {
+                // Check cache: if size + mtime match, reuse cached hash
+                let cache_key = path.to_string_lossy().replace('\\', "/");
+                if let Some(cached) = hash_cache.get(&cache_key) {
+                    if cached.size == file_size && cached.mtime == modified {
+                        cached.hash.clone()
+                    } else {
+                        compute_file_hash(path).ok()?
+                    }
+                } else {
+                    compute_file_hash(path).ok()?
+                }
+            } else {
+                String::new()
+            };
+
             let file_type = file_type_fn(&ext);
 
             Some((
                 relative.clone(),
                 FileInfo {
                     relative_path: relative,
-                    size: metadata.len(),
+                    size: file_size,
                     hash,
                     modified,
                     file_type,
@@ -203,20 +243,40 @@ pub async fn scan_files(
         .collect();
 
     let manifest = tokio::task::spawn_blocking(move || {
+        let hash_cache = if compute_hashes { load_hash_cache() } else { HashMap::new() };
         let ext_refs: Vec<&str> = extensions.iter().map(|s| s.as_str()).collect();
         let mods = scan_directory(&base_path, "Mods", |ext| match ext {
             "ts4script" | "zip" | "sims3pack" => FileType::Mod,
             _ => FileType::CustomContent,
-        }, &ext_refs, compute_hashes);
+        }, &ext_refs, compute_hashes, &hash_cache);
 
-        let saves = scan_directory(&base_path, "Saves", |_| FileType::Save, &[], compute_hashes);
-        let tray = scan_directory(&base_path, "Tray", |_| FileType::Tray, &[], compute_hashes);
-        let screenshots = scan_directory(&base_path, "Screenshots", |_| FileType::Screenshot, &[], compute_hashes);
+        let saves = scan_directory(&base_path, "Saves", |_| FileType::Save, &[], compute_hashes, &hash_cache);
+        let tray = scan_directory(&base_path, "Tray", |_| FileType::Tray, &[], compute_hashes, &hash_cache);
+        let screenshots = scan_directory(&base_path, "Screenshots", |_| FileType::Screenshot, &[], compute_hashes, &hash_cache);
 
         let mut all_files = mods;
         all_files.extend(saves);
         all_files.extend(tray);
         all_files.extend(screenshots);
+
+        // Update hash cache with current scan results
+        if compute_hashes {
+            let mut new_cache = HashCache::new();
+            for info in all_files.values() {
+                if !info.hash.is_empty() {
+                    let abs_path = std::path::PathBuf::from(&base_path)
+                        .join(&info.relative_path)
+                        .to_string_lossy()
+                        .replace('\\', "/");
+                    new_cache.insert(abs_path, HashCacheEntry {
+                        size: info.size,
+                        mtime: info.modified,
+                        hash: info.hash.clone(),
+                    });
+                }
+            }
+            save_hash_cache(&new_cache);
+        }
 
         FileManifest {
             files: all_files,

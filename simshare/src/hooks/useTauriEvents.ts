@@ -25,6 +25,7 @@ export function useTauriEvents() {
   const setSession = useAppStore((s) => s.setSession);
   const setManifest = useAppStore((s) => s.setManifest);
   const setIsDragging = useAppStore((s) => s.setIsDragging);
+  const setIsScanning = useAppStore((s) => s.setIsScanning);
   const addLog = useLogStore((s) => s.addLog);
 
   const notifRequested = useRef(false);
@@ -65,6 +66,7 @@ export function useTauriEvents() {
         }),
         listen<{ name: string; clean?: boolean; reason?: string }>("peer-disconnected", async (event) => {
           const { name, clean, reason } = event.payload;
+          setIsScanning(false);
           if (clean) {
             addLog(`Peer disconnected: ${name}`, "info");
           } else {
@@ -79,6 +81,7 @@ export function useTauriEvents() {
         }),
         listen<{ message: string }>("connection-failed", (event) => {
           addLog(`Connection failed: ${event.payload.message}`, "error");
+          setIsScanning(false);
           setSession(null);
         }),
         listen<{ file: string; bytes_sent: number; bytes_total: number; files_done: number; files_total: number }>(
@@ -159,5 +162,5 @@ export function useTauriEvents() {
       cancelled = true;
       unlisteners.forEach((fn) => fn());
     };
-  }, [setSyncProgress, setSyncPlan, setSession, setManifest, setIsDragging, addLog]);
+  }, [setSyncProgress, setSyncPlan, setSession, setManifest, setIsDragging, setIsScanning, addLog]);
 }

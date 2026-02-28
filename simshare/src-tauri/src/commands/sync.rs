@@ -63,6 +63,25 @@ pub async fn compute_sync_plan(
             }
         }
         plan.excluded = excluded;
+
+        // Recalculate total_bytes to exclude excluded files
+        plan.total_bytes = plan.actions.iter()
+            .filter(|action| {
+                let path = match action {
+                    SyncAction::SendToRemote(f) => &f.relative_path,
+                    SyncAction::ReceiveFromRemote(f) => &f.relative_path,
+                    SyncAction::Conflict { local, .. } => &local.relative_path,
+                    SyncAction::Delete(p) => p,
+                };
+                !plan.excluded.contains(path)
+            })
+            .map(|action| match action {
+                SyncAction::SendToRemote(f) => f.size,
+                SyncAction::ReceiveFromRemote(f) => f.size,
+                SyncAction::Conflict { local, remote } => local.size.max(remote.size),
+                SyncAction::Delete(_) => 0,
+            })
+            .sum();
     }
 
     // Store plan on the peer connection
@@ -126,7 +145,18 @@ async fn run_sync(
     base_path: &str,
     peer_id: &str,
 ) -> Result<(), String> {
-    let total_files = plan.actions.len() as u64;
+    // Count only non-excluded actions for accurate progress
+    let total_files = plan.actions.iter()
+        .filter(|action| {
+            let path = match action {
+                SyncAction::SendToRemote(f) => Some(&f.relative_path),
+                SyncAction::ReceiveFromRemote(f) => Some(&f.relative_path),
+                SyncAction::Conflict { local, .. } => Some(&local.relative_path),
+                SyncAction::Delete(p) => Some(p),
+            };
+            path.map_or(true, |p| !plan.excluded.contains(p))
+        })
+        .count() as u64;
     let mut files_done = 0u64;
     let mut bytes_done = 0u64;
     let mut sync_errors: Vec<String> = Vec::new();
@@ -148,18 +178,6 @@ async fn run_sync(
 
         match action {
             SyncAction::ReceiveFromRemote(file_info) => {
-                let _ = app.emit(
-                    "sync-progress",
-                    serde_json::json!({
-                        "file": file_info.relative_path,
-                        "bytes_sent": bytes_done,
-                        "bytes_total": plan.total_bytes,
-                        "files_done": files_done,
-                        "files_total": total_files,
-                        "peer_id": peer_id,
-                    }),
-                );
-
                 match transfer::request_file(
                     &state_arc,
                     peer_id,
@@ -173,6 +191,7 @@ async fn run_sync(
                         bytes_done += file_info.size;
                     }
                     Err(e) => {
+                        files_done += 1;
                         sync_errors.push(format!("{}: {}", file_info.relative_path, e));
                         let _ = app.emit(
                             "sync-error",
@@ -180,6 +199,18 @@ async fn run_sync(
                         );
                     }
                 }
+                // Emit progress AFTER transfer so the last file reaches 100%
+                let _ = app.emit(
+                    "sync-progress",
+                    serde_json::json!({
+                        "file": file_info.relative_path,
+                        "bytes_sent": bytes_done,
+                        "bytes_total": plan.total_bytes,
+                        "files_done": files_done,
+                        "files_total": total_files,
+                        "peer_id": peer_id,
+                    }),
+                );
             }
             SyncAction::SendToRemote(file_info) => {
                 // The remote side will request files from us via the TCP handler.

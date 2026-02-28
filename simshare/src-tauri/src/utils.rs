@@ -276,6 +276,13 @@ pub fn game_config_path() -> PathBuf {
     dir.join("game_config.json")
 }
 
+pub fn hash_cache_path() -> PathBuf {
+    let config = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
+    let dir = config.join("simshare");
+    std::fs::create_dir_all(&dir).ok();
+    dir.join("hash_cache.json")
+}
+
 /// Validate a profile ID contains no path separators or traversal
 pub fn sanitize_id(id: &str) -> Result<(), String> {
     if id.is_empty() {
