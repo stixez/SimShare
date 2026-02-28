@@ -148,14 +148,14 @@ async fn handle_client(
         protocol::recv_message(&mut *s).await?
     };
 
-    let (peer_name, peer_pin) = match msg {
-        Message::Hello { name, version: _, pin } => {
+    let (peer_name, peer_version, peer_pin) = match msg {
+        Message::Hello { name, version, pin } => {
             // Sanitize: truncate and strip control characters
             let sanitized = name.chars()
                 .filter(|c| !c.is_control())
                 .take(MAX_PEER_NAME_LEN)
                 .collect::<String>();
-            (sanitized, pin)
+            (sanitized, version, pin)
         }
         _ => return Err("Expected Hello message".to_string()),
     };
@@ -210,7 +210,7 @@ async fn handle_client(
             ip: _peer_addr.split(':').next().unwrap_or("unknown").to_string(),
             port: 0,
             mod_count: 0,
-            version: String::new(),
+            version: peer_version.clone(),
             pin_required: false,
             game_info: None,
         };
@@ -250,14 +250,19 @@ async fn handle_client(
         }
     }
 
-    // Handle messages in a loop
+    // Handle messages in a loop (5-minute idle timeout; TCP keepalive detects dead connections)
     let mut clean_disconnect = false;
     let mut disconnect_reason = String::new();
     loop {
         let msg = {
             let mut s = stream.lock().await;
-            match protocol::recv_message(&mut *s).await {
-                Ok(m) => m,
+            match protocol::try_recv_message(&mut *s, std::time::Duration::from_secs(300)).await {
+                Ok(Some(m)) => m,
+                Ok(None) => {
+                    log::warn!("Idle timeout for peer '{}' ({})", peer_name, peer_id);
+                    disconnect_reason = "Idle timeout (5 min)".to_string();
+                    break;
+                }
                 Err(e) => {
                     log::warn!("Connection lost for peer '{}' ({}): {}", peer_name, peer_id, e);
                     disconnect_reason = e;
@@ -279,10 +284,18 @@ async fn handle_client(
                 protocol::send_message(&mut *s, &Message::ManifestResponse { manifest }).await?;
             }
             Message::ManifestResponse { manifest } => {
+                let mod_count = manifest.files.len();
                 let mut app_state = state.lock().await;
                 if let Some(conn) = app_state.connections.get_mut(&peer_id) {
+                    conn.info.mod_count = mod_count;
                     conn.remote_manifest = Some(manifest);
                 }
+                drop(app_state);
+                // Notify frontend so peer info updates
+                let _ = app.emit(
+                    "peer-game-info",
+                    serde_json::json!({"peer_id": &peer_id}),
+                );
             }
             Message::FileRequest { path } => {
                 let base = {
@@ -414,6 +427,9 @@ async fn handle_client(
                     serde_json::json!({"peer_id": &peer_id, "game_info": &sanitized}),
                 );
             }
+            Message::Ping => {
+                // Keepalive — no-op, resets the idle timeout
+            }
             Message::Disconnect => {
                 clean_disconnect = true;
                 break;
@@ -481,20 +497,15 @@ pub async fn connect_to_host(
     }
 
     // Wait for Welcome (or Error if PIN was rejected)
-    let host_name = {
+    let (host_name, host_version) = {
         let mut s = stream.lock().await;
         let msg = protocol::recv_message(&mut *s).await?;
         match msg {
-            Message::Welcome { name, .. } => name,
+            Message::Welcome { name, version } => (name, version),
             Message::Error { message } => return Err(message),
             _ => return Err("Expected Welcome message".to_string()),
         }
     };
-
-    let _ = app.emit(
-        "peer-connected",
-        serde_json::json!({"name": &host_name, "peer_id": peer_id}),
-    );
 
     // Send our game info to the host
     {
@@ -532,7 +543,21 @@ pub async fn connect_to_host(
         }
     };
 
-    // Store persistent connection in connections map
+    // Send our manifest to the host so it knows our mod count
+    {
+        let app_state = state.lock().await;
+        let manifest = app_state.local_manifest.clone();
+        drop(app_state);
+        let mut s = stream.lock().await;
+        let _ = protocol::send_message(
+            &mut *s,
+            &Message::ManifestResponse { manifest },
+        )
+        .await;
+    }
+
+    // Store persistent connection BEFORE emitting event so frontend sees peers
+    let host_name_for_loop = host_name.clone();
     {
         let mut app_state = state.lock().await;
         let info = crate::state::PeerInfo {
@@ -541,7 +566,7 @@ pub async fn connect_to_host(
             ip: ip.to_string(),
             port,
             mod_count: remote_manifest.files.len(),
-            version: String::new(),
+            version: host_version,
             pin_required: false,
             game_info: host_game_info,
         };
@@ -549,7 +574,7 @@ pub async fn connect_to_host(
             peer_id.to_string(),
             crate::state::PeerConnection {
                 info,
-                stream,
+                stream: stream.clone(),
                 remote_manifest: Some(remote_manifest),
                 sync_plan: None,
                 is_syncing: false,
@@ -557,7 +582,124 @@ pub async fn connect_to_host(
         );
     }
 
+    // Emit peer-connected AFTER connection is stored so getSessionStatus() returns peers
+    let _ = app.emit(
+        "peer-connected",
+        serde_json::json!({"name": &host_name_for_loop, "peer_id": peer_id}),
+    );
+
+    // Client message loop — keeps connection alive, handles host messages,
+    // detects disconnects. Runs until the connection drops.
+    client_message_loop(state, app, stream, peer_id, host_name_for_loop).await;
+
     Ok(())
+}
+
+/// Client-side message loop: reads messages from the host and detects disconnects.
+/// Uses `try_lock` on the stream so sync operations can use the stream concurrently.
+/// Runs until the connection drops or the user disconnects. Handles its own cleanup.
+async fn client_message_loop(
+    state: Arc<Mutex<AppState>>,
+    app: tauri::AppHandle,
+    stream: Arc<Mutex<TcpStream>>,
+    peer_id: &str,
+    host_name: String,
+) {
+    let mut clean_disconnect = false;
+    let mut disconnect_reason = String::new();
+    let mut last_ping = std::time::Instant::now();
+
+    loop {
+        // Check if we're still connected (user may have called disconnect)
+        {
+            let app_state = state.lock().await;
+            if app_state.session_type != crate::state::SessionType::Client
+                || !app_state.connections.contains_key(peer_id)
+            {
+                return; // Already cleaned up externally (e.g. user called disconnect)
+            }
+        }
+
+        // Try to read from stream without blocking sync operations.
+        // try_lock avoids holding the stream while a file transfer is in progress.
+        let msg_result = match stream.try_lock() {
+            Ok(mut s) => {
+                // Send periodic keepalive to prevent host idle timeout
+                if last_ping.elapsed() > std::time::Duration::from_secs(20) {
+                    if protocol::send_message(&mut *s, &Message::Ping).await.is_ok() {
+                        last_ping = std::time::Instant::now();
+                    }
+                }
+                protocol::try_recv_message(&mut *s, std::time::Duration::from_millis(200)).await
+            }
+            Err(_) => {
+                // Stream in use by sync operation (which sends its own messages) — skip
+                Ok(None)
+            }
+        };
+
+        match msg_result {
+            Ok(Some(msg)) => match msg {
+                Message::Disconnect => {
+                    log::info!("Host '{}' sent disconnect", host_name);
+                    clean_disconnect = true;
+                    break;
+                }
+                Message::GameInfoExchange { game_info } => {
+                    let sanitized = sanitize_game_info(game_info);
+                    let mut app_state = state.lock().await;
+                    if let Some(conn) = app_state.connections.get_mut(peer_id) {
+                        conn.info.game_info = Some(sanitized);
+                    }
+                    let _ = app.emit(
+                        "peer-game-info",
+                        serde_json::json!({"peer_id": peer_id}),
+                    );
+                }
+                other => {
+                    log::debug!("Client message loop: ignoring {:?}", other);
+                }
+            },
+            Ok(None) => {
+                // Timeout or stream busy — sleep before retrying
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                continue;
+            }
+            Err(e) => {
+                log::warn!("Connection to host '{}' lost: {}", host_name, e);
+                disconnect_reason = e;
+                break;
+            }
+        }
+    }
+
+    // Clean up connection and reset session state
+    {
+        let mut app_state = state.lock().await;
+        if app_state.connections.remove(peer_id).is_some() {
+            app_state.session_type = crate::state::SessionType::None;
+            app_state.session_name.clear();
+            app_state.local_display_name.clear();
+        }
+    }
+
+    let reason = if clean_disconnect {
+        "Host disconnected".to_string()
+    } else if disconnect_reason.is_empty() {
+        "Unknown".to_string()
+    } else {
+        disconnect_reason
+    };
+
+    let _ = app.emit(
+        "peer-disconnected",
+        serde_json::json!({
+            "name": &host_name,
+            "peer_id": peer_id,
+            "clean": clean_disconnect,
+            "reason": reason,
+        }),
+    );
 }
 
 /// Request a file from a specific peer over their persistent connection

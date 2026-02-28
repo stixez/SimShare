@@ -28,7 +28,7 @@ export default function Dashboard() {
   const setGamePaths = useAppStore((s) => s.setGamePaths);
   const setPage = useAppStore((s) => s.setPage);
   const { host, join, connectTo, leave, isLoading } = useSession();
-  const { computePlan, executeSync, resolveAll, isLoading: isSyncLoading } = useSync();
+  const { computePlan, executeSync, resolveAll, isLoading: isSyncLoading, loadingPhase } = useSync();
   const gameLabels: Record<string, string> = { Sims2: "Sims 2", Sims3: "Sims 3", Sims4: "Sims 4" };
   const activeGameLabel = gameLabels[activeGame] || "Sims 4";
   const games = ["Sims2", "Sims3", "Sims4"] as const;
@@ -90,6 +90,20 @@ export default function Dashboard() {
       setDetectingPacks(false);
     }
   }, [setGameInfo, addLog]);
+
+  // Fetch persisted game paths and active game from backend on mount
+  useEffect(() => {
+    cmd.getAllGamePaths().then((paths) => {
+      const converted: Partial<Record<string, string>> = {};
+      for (const [k, v] of Object.entries(paths)) {
+        if (v) converted[k] = v;
+      }
+      setGamePaths(converted);
+    }).catch(() => {});
+    cmd.getActiveGame().then((game) => {
+      setActiveGame(game);
+    }).catch(() => {});
+  }, [setGamePaths, setActiveGame]);
 
   useEffect(() => {
     cmd.getGameInfo().then((info) => {
@@ -443,6 +457,10 @@ export default function Dashboard() {
     );
   }
 
+  const isHost = session.session_type === "Host";
+  const isClient = session.session_type === "Client";
+  const hostPeer = isClient && session.peers.length > 0 ? session.peers[0] : null;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -461,7 +479,7 @@ export default function Dashboard() {
             disabled={isSyncLoading}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-sm transition-colors disabled:opacity-50"
           >
-            {isSyncLoading ? "Computing..." : "Compare & Sync"}
+            {isSyncLoading ? (loadingPhase || "Computing...") : "Compare & Sync"}
           </button>
           <button
             onClick={leave}
@@ -473,7 +491,36 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {session.session_type === "Host" && session.pin && (
+      {isClient && hostPeer && (
+        <div className="bg-status-green/10 border border-status-green/30 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-status-green/20 flex items-center justify-center">
+              <Monitor size={20} className="text-status-green" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs text-txt-dim">Connected to</p>
+              <p className="text-sm font-semibold">{hostPeer.name}</p>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              {hostPeer.game_info?.game_version && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent-light text-xs font-medium">
+                  <Gamepad2 size={10} />
+                  v{hostPeer.game_info.game_version}
+                </span>
+              )}
+              <span className="text-txt-dim text-xs">{hostPeer.mod_count} mods</span>
+              {(hostPeer.game_info?.installed_packs?.length ?? 0) > 0 && (
+                <span className="text-txt-dim text-xs">
+                  {hostPeer.game_info!.installed_packs!.length} packs
+                </span>
+              )}
+              <span className="w-2 h-2 rounded-full bg-status-green" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isHost && session.pin && (
         <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Lock size={18} className="text-accent-light" />

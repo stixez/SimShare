@@ -64,12 +64,22 @@ pub async fn scan_for_hosts(_app: tauri::AppHandle) -> Result<Vec<PeerInfo>, Str
         let receiver = daemon.browse(SERVICE_TYPE).map_err(|e| e.to_string())?;
 
         let mut peers: Vec<PeerInfo> = Vec::new();
+        let mut seen_services = std::collections::HashSet::new();
         let timeout = std::time::Duration::from_secs(3);
         let start = std::time::Instant::now();
 
         while start.elapsed() < timeout {
             match receiver.recv_timeout(std::time::Duration::from_millis(500)) {
                 Ok(ServiceEvent::ServiceResolved(info)) => {
+                    // Deduplicate by service fullname — mDNS fires multiple
+                    // ServiceResolved events for the same host when it has
+                    // multiple network interfaces (Ethernet + WiFi, IPv4 + IPv6)
+                    let fullname = info.get_fullname().to_string();
+                    if seen_services.contains(&fullname) {
+                        continue;
+                    }
+                    seen_services.insert(fullname);
+
                     let name = info
                         .get_properties()
                         .get("name")
@@ -114,20 +124,16 @@ pub async fn scan_for_hosts(_app: tauri::AppHandle) -> Result<Vec<PeerInfo>, Str
                         installed_packs: Vec::new(),
                     });
 
-                    // Deduplicate by (ip, port) — mDNS can fire multiple
-                    // ServiceResolved events for the same host (IPv4 + IPv6, etc.)
-                    if !peers.iter().any(|p| p.ip == ip && p.port == port) {
-                        peers.push(PeerInfo {
-                            id: Uuid::new_v4().to_string(),
-                            name,
-                            ip,
-                            port,
-                            mod_count,
-                            version,
-                            pin_required,
-                            game_info,
-                        });
-                    }
+                    peers.push(PeerInfo {
+                        id: Uuid::new_v4().to_string(),
+                        name,
+                        ip,
+                        port,
+                        mod_count,
+                        version,
+                        pin_required,
+                        game_info,
+                    });
                 }
                 Ok(_) => {}
                 Err(_) => {}

@@ -30,6 +30,7 @@ pub enum Message {
     Error { message: String },
     Disconnect,
     GameInfoExchange { game_info: GameInfo },
+    Ping,
 }
 
 pub async fn send_message(stream: &mut TcpStream, msg: &Message) -> Result<(), String> {
@@ -45,12 +46,10 @@ pub async fn send_message(stream: &mut TcpStream, msg: &Message) -> Result<(), S
     .map_err(|_| "Connection timed out writing message".to_string())?
 }
 
-pub async fn recv_message(stream: &mut TcpStream) -> Result<Message, String> {
+/// Internal: reads one length-prefixed JSON message without a timeout wrapper.
+async fn recv_message_raw(stream: &mut TcpStream) -> Result<Message, String> {
     let mut len_buf = [0u8; 4];
-    tokio::time::timeout(RECV_TIMEOUT, stream.read_exact(&mut len_buf))
-        .await
-        .map_err(|_| "Connection timed out reading message length".to_string())?
-        .map_err(|e| e.to_string())?;
+    stream.read_exact(&mut len_buf).await.map_err(|e| e.to_string())?;
     let len = u32::from_be_bytes(len_buf) as usize;
 
     if len > MAX_MESSAGE_SIZE {
@@ -58,10 +57,7 @@ pub async fn recv_message(stream: &mut TcpStream) -> Result<Message, String> {
     }
 
     let mut buf = vec![0u8; len];
-    tokio::time::timeout(RECV_TIMEOUT, stream.read_exact(&mut buf))
-        .await
-        .map_err(|_| "Connection timed out reading message body".to_string())?
-        .map_err(|e| e.to_string())?;
+    stream.read_exact(&mut buf).await.map_err(|e| e.to_string())?;
 
     let msg: Message = serde_json::from_slice(&buf).map_err(|e| e.to_string())?;
 
@@ -77,6 +73,21 @@ pub async fn recv_message(stream: &mut TcpStream) -> Result<Message, String> {
     }
 
     Ok(msg)
+}
+
+pub async fn recv_message(stream: &mut TcpStream) -> Result<Message, String> {
+    tokio::time::timeout(RECV_TIMEOUT, recv_message_raw(stream))
+        .await
+        .map_err(|_| "Connection timed out reading message".to_string())?
+}
+
+/// Try to receive a message with a custom timeout.
+/// Returns Ok(Some(msg)) on success, Ok(None) on timeout, Err on connection error.
+pub async fn try_recv_message(stream: &mut TcpStream, timeout: Duration) -> Result<Option<Message>, String> {
+    match tokio::time::timeout(timeout, recv_message_raw(stream)).await {
+        Ok(result) => result.map(Some),
+        Err(_) => Ok(None),
+    }
 }
 
 /// Configure TCP keepalive on a stream to prevent NAT/firewall idle timeouts.

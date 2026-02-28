@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useAppStore } from "../stores/useAppStore";
 import { useLogStore } from "../stores/useLogStore";
+import { toastError, toastSuccess } from "../lib/toast";
 import * as cmd from "../lib/commands";
 import type { Resolution } from "../lib/types";
 
 export function useSync() {
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState("");
   const setSyncPlan = useAppStore((s) => s.setSyncPlan);
   const addLog = useLogStore((s) => s.addLog);
 
@@ -13,25 +15,39 @@ export function useSync() {
     setIsLoading(true);
     try {
       // Full scan with hashes needed for accurate sync comparison
+      setLoadingPhase("Hashing files...");
       await cmd.scanFiles(undefined, false);
+      setLoadingPhase("Comparing manifests...");
       const plan = await cmd.computeSyncPlan();
       setSyncPlan(plan);
-      addLog(`Sync plan: ${plan.actions.length} actions`, "info");
+      const count = plan.actions.length;
+      if (count > 0) {
+        toastSuccess(`Found ${count} difference(s) to sync`);
+      } else {
+        toastSuccess("Everything is in sync!");
+      }
+      addLog(`Sync plan: ${count} actions`, "info");
     } catch (e: any) {
       addLog(`Failed to compute sync plan: ${e}`, "error");
+      toastError(`Sync failed: ${e}`);
     } finally {
       setIsLoading(false);
+      setLoadingPhase("");
     }
   };
 
   const executeSync = async () => {
     setIsLoading(true);
+    setLoadingPhase("Syncing files...");
     try {
       await cmd.executeSync();
+      toastSuccess("Sync complete!");
     } catch (e: any) {
       addLog(`Sync failed: ${e}`, "error");
+      toastError(`Sync failed: ${e}`);
     } finally {
       setIsLoading(false);
+      setLoadingPhase("");
     }
   };
 
@@ -55,5 +71,5 @@ export function useSync() {
     }
   };
 
-  return { computePlan, executeSync, resolve, resolveAll, isLoading };
+  return { computePlan, executeSync, resolve, resolveAll, isLoading, loadingPhase };
 }
