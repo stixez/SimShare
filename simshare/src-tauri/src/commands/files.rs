@@ -1,5 +1,6 @@
 use crate::state::{AppState, FileInfo, FileManifest, FileType, SimsGame};
 use crate::utils;
+use rayon::prelude::*;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -59,7 +60,7 @@ fn save_game_config(app_state: &AppState) {
 fn scan_directory(
     base_path: &str,
     sub_dir: &str,
-    file_type_fn: impl Fn(&str) -> FileType,
+    file_type_fn: impl Fn(&str) -> FileType + Sync,
     valid_extensions: &[&str],
     compute_hashes: bool,
 ) -> HashMap<String, FileInfo> {
@@ -70,66 +71,78 @@ fn scan_directory(
         return files;
     }
 
-    for entry in WalkDir::new(&dir).follow_links(false).into_iter().filter_map(|e| e.ok()) {
-        let path = entry.path();
-        // Skip symlinks to prevent escaping base directory
-        if entry.path_is_symlink() {
-            continue;
-        }
-        if !path.is_file() {
-            continue;
-        }
-
-        let ext = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-
-        if sub_dir == "Mods" && !valid_extensions.contains(&ext.as_str()) {
-            continue;
-        }
-
-        let relative = path
-            .strip_prefix(base_path)
-            .unwrap_or(path)
-            .to_string_lossy()
-            .to_string()
-            .replace('\\', "/"); // Normalize to forward slashes for cross-platform compat
-
-        let metadata = match std::fs::metadata(path) {
-            Ok(m) => m,
-            Err(_) => continue,
-        };
-
-        let hash = if compute_hashes {
-            match compute_file_hash(path) {
-                Ok(h) => h,
-                Err(_) => continue,
+    // Collect eligible file entries first, then hash in parallel
+    let entries: Vec<_> = WalkDir::new(&dir)
+        .follow_links(false)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|entry| {
+            if entry.path_is_symlink() || !entry.path().is_file() {
+                return false;
             }
-        } else {
-            String::new()
-        };
+            if sub_dir == "Mods" {
+                let ext = entry
+                    .path()
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("")
+                    .to_lowercase();
+                valid_extensions.contains(&ext.as_str())
+            } else {
+                true
+            }
+        })
+        .collect();
 
-        let modified = metadata
-            .modified()
-            .ok()
-            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-            .map(|d| d.as_secs())
-            .unwrap_or(0);
+    let results: Vec<_> = entries
+        .par_iter()
+        .filter_map(|entry| {
+            let path = entry.path();
+            let ext = path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_lowercase();
 
-        let file_type = file_type_fn(&ext);
+            let relative = path
+                .strip_prefix(base_path)
+                .unwrap_or(path)
+                .to_string_lossy()
+                .to_string()
+                .replace('\\', "/");
 
-        files.insert(
-            relative.clone(),
-            FileInfo {
-                relative_path: relative,
-                size: metadata.len(),
-                hash,
-                modified,
-                file_type,
-            },
-        );
+            let metadata = std::fs::metadata(path).ok()?;
+
+            let hash = if compute_hashes {
+                compute_file_hash(path).ok()?
+            } else {
+                String::new()
+            };
+
+            let modified = metadata
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+
+            let file_type = file_type_fn(&ext);
+
+            Some((
+                relative.clone(),
+                FileInfo {
+                    relative_path: relative,
+                    size: metadata.len(),
+                    hash,
+                    modified,
+                    file_type,
+                },
+            ))
+        })
+        .collect();
+
+    for (key, info) in results {
+        files.insert(key, info);
     }
 
     files
@@ -138,9 +151,9 @@ fn scan_directory(
 fn compute_file_hash(path: &std::path::Path) -> Result<String, String> {
     use std::io::Read;
     let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
-    let mut reader = std::io::BufReader::new(file);
+    let mut reader = std::io::BufReader::with_capacity(131072, file); // 128 KB buffer
     let mut hasher = Sha256::new();
-    let mut buffer = [0u8; 8192];
+    let mut buffer = [0u8; 131072]; // 128 KB read chunks
     loop {
         let n = reader.read(&mut buffer).map_err(|e| e.to_string())?;
         if n == 0 {
