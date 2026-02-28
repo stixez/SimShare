@@ -10,6 +10,8 @@ import type { ModCompatibility } from "../lib/types";
 
 type ModSortBy = "name" | "size" | "date" | "status";
 
+const ITEMS_PER_PAGE = 50;
+
 export default function ModList() {
   const manifest = useAppStore((s) => s.manifest);
   const setManifest = useAppStore((s) => s.setManifest);
@@ -29,6 +31,7 @@ export default function ModList() {
   const [bulkMode, setBulkMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkTagInput, setBulkTagInput] = useState(false);
+  const [page, setPage] = useState(0);
   const modCompatibility = useAppStore((s) => s.modCompatibility);
   const setModCompatibility = useAppStore((s) => s.setModCompatibility);
 
@@ -159,6 +162,16 @@ export default function ModList() {
         }
       });
   }, [manifest, search, filter, tagFilter, modTags, sortBy, getSyncStatus]);
+
+  // Reset to first page when filters/sort change
+  useEffect(() => {
+    setPage(0);
+  }, [search, filter, tagFilter, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(mods.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageStart = safePage * ITEMS_PER_PAGE;
+  const pageMods = mods.slice(pageStart, pageStart + ITEMS_PER_PAGE);
 
   return (
     <div className="space-y-4">
@@ -338,7 +351,7 @@ export default function ModList() {
             </button>
           </div>
         ) : (
-          mods.map((mod) => (
+          pageMods.map((mod) => (
             <ModItem
               key={mod.relative_path}
               file={mod}
@@ -353,6 +366,33 @@ export default function ModList() {
           ))
         )}
       </div>
+
+      {mods.length > ITEMS_PER_PAGE && (
+        <div className="flex items-center justify-between pt-2">
+          <span className="text-xs text-txt-dim">
+            {pageStart + 1}–{Math.min(pageStart + ITEMS_PER_PAGE, mods.length)} of {mods.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={safePage === 0}
+              className="px-3 py-1 rounded-lg bg-bg-card border border-border text-xs font-medium transition-colors hover:bg-bg-card-hover disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="text-xs text-txt-dim">
+              Page {safePage + 1} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={safePage >= totalPages - 1}
+              className="px-3 py-1 rounded-lg bg-bg-card border border-border text-xs font-medium transition-colors hover:bg-bg-card-hover disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
