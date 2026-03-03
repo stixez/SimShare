@@ -16,6 +16,7 @@ pub fn clean_path(path: PathBuf) -> PathBuf {
 
 /// Scan all direct children of a directory for a given subfolder path.
 /// Handles localized folder names (e.g. OneDrive/Dokumenti, OneDrive/Documenti).
+#[cfg(target_os = "windows")]
 fn scan_children_for(parent: &std::path::Path, sub: &std::path::Path) -> Vec<PathBuf> {
     let mut results = Vec::new();
     if let Ok(entries) = std::fs::read_dir(parent) {
