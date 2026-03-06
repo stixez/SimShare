@@ -61,20 +61,27 @@ export default function WelcomeScreen() {
     }
 
     setAdding(true);
-    try {
-      const ids = Array.from(selected);
-      for (const id of ids) {
+    const ids = Array.from(selected);
+    const added: string[] = [];
+    for (const id of ids) {
+      try {
         await cmd.addToLibrary(id);
+        added.push(id);
+      } catch {
+        // Skip failed games, continue with the rest
       }
-      setMyLibrary([...myLibrary, ...ids]);
-      markOnboardingComplete();
-      navigateToGame(ids[0]);
-    } catch {
-      // If something fails, still mark complete so they don't get stuck
-      markOnboardingComplete();
-    } finally {
-      setAdding(false);
     }
+    if (added.length > 0) {
+      setMyLibrary([...myLibrary, ...added]);
+    }
+    markOnboardingComplete();
+    if (added.length > 0) {
+      await cmd.setActiveGame(added[0]).catch(() => {});
+      navigateToGame(added[0]);
+    } else {
+      navigateToGlobal("game-browser");
+    }
+    setAdding(false);
   };
 
   const handleSkip = () => {

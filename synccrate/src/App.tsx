@@ -85,6 +85,7 @@ function App() {
 
         // Auto-select first library game if none selected (skip during onboarding)
         if (!useAppStore.getState().selectedGame && library.length > 0 && isOnboardingComplete()) {
+          await cmd.setActiveGame(library[0]);
           useAppStore.getState().navigateToGame(library[0]);
         }
       } catch (e) {
