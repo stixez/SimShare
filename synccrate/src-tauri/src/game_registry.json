@@ -1,0 +1,879 @@
+{
+  "version": 1,
+  "games": [
+    {
+      "id": "sims4",
+      "label": "The Sims 4",
+      "family": "sims",
+      "icon": "gamepad-2",
+      "color": "text-accent-light",
+      "primary_color": "#1ea84b",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "documents_relative",
+            "base": "Electronic Arts",
+            "folders": ["The Sims 4"]
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": ["Mods", "Saves"],
+        "auto_create_dirs": ["Mods", "Saves"]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "Script Mods",
+          "icon": "package",
+          "color": "text-accent-light",
+          "folder": "Mods",
+          "extensions": ["package", "ts4script", "zip", "bpi", "cfg", "txt"],
+          "file_type": "CustomContent",
+          "classify_by_extension": {
+            "ts4script": "Mod",
+            "zip": "Mod",
+            "sims3pack": "Mod"
+          },
+          "syncable": true
+        },
+        {
+          "id": "saves",
+          "label": "Save Files",
+          "icon": "save",
+          "color": "text-status-green",
+          "folder": "Saves",
+          "extensions": [],
+          "file_type": "Save",
+          "syncable": true
+        },
+        {
+          "id": "tray",
+          "label": "Tray Items",
+          "icon": "layout-grid",
+          "color": "text-purple-400",
+          "folder": "Tray",
+          "extensions": [],
+          "file_type": "Tray",
+          "syncable": true
+        },
+        {
+          "id": "screenshots",
+          "label": "Screenshots",
+          "icon": "camera",
+          "color": "text-sky-400",
+          "folder": "Screenshots",
+          "extensions": [],
+          "file_type": "Screenshot",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": ["ts4script"],
+      "packs": "sims4",
+      "legacy_id": "Sims4",
+      "version_detection": {
+        "file": "GameVersion.txt",
+        "method": "read_text_file"
+      },
+      "path_correction": {
+        "known_subfolders": ["Mods", "Saves", "Tray", "Screenshots", "Downloads"]
+      }
+    },
+    {
+      "id": "sims3",
+      "label": "The Sims 3",
+      "family": "sims",
+      "icon": "gamepad-2",
+      "color": "text-blue-400",
+      "primary_color": "#60a5fa",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "documents_relative",
+            "base": "Electronic Arts",
+            "folders": ["The Sims 3"]
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": ["Mods", "Saves"],
+        "auto_create_dirs": ["Mods", "Saves"]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "Mods & CC",
+          "icon": "package",
+          "color": "text-blue-400",
+          "folder": "Mods",
+          "extensions": ["package", "sims3pack", "zip"],
+          "file_type": "CustomContent",
+          "classify_by_extension": {
+            "sims3pack": "Mod",
+            "zip": "Mod"
+          },
+          "syncable": true
+        },
+        {
+          "id": "saves",
+          "label": "Save Files",
+          "icon": "save",
+          "color": "text-status-green",
+          "folder": "Saves",
+          "extensions": [],
+          "file_type": "Save",
+          "syncable": true
+        },
+        {
+          "id": "tray",
+          "label": "Tray Items",
+          "icon": "layout-grid",
+          "color": "text-purple-400",
+          "folder": "Tray",
+          "extensions": [],
+          "file_type": "Tray",
+          "syncable": true
+        },
+        {
+          "id": "screenshots",
+          "label": "Screenshots",
+          "icon": "camera",
+          "color": "text-sky-400",
+          "folder": "Screenshots",
+          "extensions": [],
+          "file_type": "Screenshot",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": [],
+      "packs": "sims3",
+      "legacy_id": "Sims3",
+      "version_detection": {
+        "file": "Sims3Version.txt",
+        "method": "read_text_file"
+      },
+      "path_correction": {
+        "known_subfolders": ["Mods", "Saves", "Tray", "Screenshots", "Downloads"]
+      }
+    },
+    {
+      "id": "sims2",
+      "label": "The Sims 2",
+      "family": "sims",
+      "icon": "gamepad-2",
+      "color": "text-orange-400",
+      "primary_color": "#fb923c",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "documents_relative",
+            "base": "EA Games",
+            "folders": ["The Sims 2", "The Sims 2 Ultimate Collection"]
+          },
+          {
+            "type": "documents_relative",
+            "base": "Electronic Arts",
+            "folders": ["The Sims 2"]
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": ["Downloads", "Mods", "Saves"],
+        "auto_create_dirs": ["Mods", "Saves"]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "Mods & CC",
+          "icon": "package",
+          "color": "text-orange-400",
+          "folder": "Mods",
+          "extensions": ["package"],
+          "file_type": "CustomContent",
+          "syncable": true
+        },
+        {
+          "id": "saves",
+          "label": "Neighborhoods",
+          "icon": "save",
+          "color": "text-status-green",
+          "folder": "Saves",
+          "extensions": [],
+          "file_type": "Save",
+          "syncable": true
+        },
+        {
+          "id": "tray",
+          "label": "Tray Items",
+          "icon": "layout-grid",
+          "color": "text-purple-400",
+          "folder": "Tray",
+          "extensions": [],
+          "file_type": "Tray",
+          "syncable": true
+        },
+        {
+          "id": "screenshots",
+          "label": "Screenshots",
+          "icon": "camera",
+          "color": "text-sky-400",
+          "folder": "Screenshots",
+          "extensions": [],
+          "file_type": "Screenshot",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": [],
+      "packs": "sims2",
+      "legacy_id": "Sims2",
+      "path_correction": {
+        "known_subfolders": ["Mods", "Saves", "Tray", "Screenshots", "Downloads"]
+      }
+    },
+    {
+      "id": "wow_retail",
+      "label": "WoW Retail",
+      "family": "wow",
+      "icon": "swords",
+      "color": "text-yellow-400",
+      "primary_color": "#facc15",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "C:\\Program Files (x86)\\World of Warcraft\\_retail_",
+                "C:\\Program Files\\World of Warcraft\\_retail_",
+                "D:\\World of Warcraft\\_retail_",
+                "D:\\Games\\World of Warcraft\\_retail_",
+                "E:\\World of Warcraft\\_retail_",
+                "E:\\Games\\World of Warcraft\\_retail_",
+                "F:\\World of Warcraft\\_retail_",
+                "F:\\Games\\World of Warcraft\\_retail_"
+              ],
+              "macos": [
+                "/Applications/World of Warcraft/_retail_"
+              ],
+              "linux": []
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": ["Interface"]
+      },
+      "content_types": [
+        {
+          "id": "addons",
+          "label": "Addons",
+          "icon": "package",
+          "color": "text-yellow-400",
+          "folder": "Interface/AddOns",
+          "extensions": ["lua", "xml", "toc", "tga", "blp", "mp3", "ogg", "ttf", "txt"],
+          "file_type": "Addon",
+          "syncable": true
+        },
+        {
+          "id": "addon_settings",
+          "label": "Addon Settings",
+          "icon": "settings",
+          "color": "text-status-green",
+          "folder": "WTF",
+          "extensions": [],
+          "file_type": "AddonSettings",
+          "classify_by_extension": {
+            "lua": "AddonSettings"
+          },
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": ["lua"],
+      "legacy_id": "WowRetail",
+      "path_correction": {
+        "known_subfolders": ["Interface", "AddOns", "WTF"],
+        "nested_corrections": {
+          "AddOns": 2
+        }
+      }
+    },
+    {
+      "id": "wow_classic",
+      "label": "WoW Classic",
+      "family": "wow",
+      "icon": "swords",
+      "color": "text-amber-400",
+      "primary_color": "#fbbf24",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "C:\\Program Files (x86)\\World of Warcraft\\_classic_",
+                "C:\\Program Files\\World of Warcraft\\_classic_",
+                "D:\\World of Warcraft\\_classic_",
+                "D:\\Games\\World of Warcraft\\_classic_",
+                "E:\\World of Warcraft\\_classic_",
+                "F:\\World of Warcraft\\_classic_"
+              ],
+              "macos": [
+                "/Applications/World of Warcraft/_classic_"
+              ],
+              "linux": []
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": ["Interface"]
+      },
+      "content_types": [
+        {
+          "id": "addons",
+          "label": "Addons",
+          "icon": "package",
+          "color": "text-amber-400",
+          "folder": "Interface/AddOns",
+          "extensions": ["lua", "xml", "toc", "tga", "blp", "mp3", "ogg", "ttf", "txt"],
+          "file_type": "Addon",
+          "syncable": true
+        },
+        {
+          "id": "addon_settings",
+          "label": "Addon Settings",
+          "icon": "settings",
+          "color": "text-status-green",
+          "folder": "WTF",
+          "extensions": [],
+          "file_type": "AddonSettings",
+          "classify_by_extension": {
+            "lua": "AddonSettings"
+          },
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": ["lua"],
+      "legacy_id": "WowClassic",
+      "path_correction": {
+        "known_subfolders": ["Interface", "AddOns", "WTF"],
+        "nested_corrections": { "AddOns": 2 }
+      }
+    },
+    {
+      "id": "wow_classic_era",
+      "label": "WoW Classic Era",
+      "family": "wow",
+      "icon": "swords",
+      "color": "text-amber-300",
+      "primary_color": "#fcd34d",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "C:\\Program Files (x86)\\World of Warcraft\\_classic_era_",
+                "C:\\Program Files\\World of Warcraft\\_classic_era_",
+                "D:\\World of Warcraft\\_classic_era_",
+                "D:\\Games\\World of Warcraft\\_classic_era_"
+              ],
+              "macos": [
+                "/Applications/World of Warcraft/_classic_era_"
+              ],
+              "linux": []
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": ["Interface"]
+      },
+      "content_types": [
+        {
+          "id": "addons",
+          "label": "Addons",
+          "icon": "package",
+          "color": "text-amber-300",
+          "folder": "Interface/AddOns",
+          "extensions": ["lua", "xml", "toc", "tga", "blp", "mp3", "ogg", "ttf", "txt"],
+          "file_type": "Addon",
+          "syncable": true
+        },
+        {
+          "id": "addon_settings",
+          "label": "Addon Settings",
+          "icon": "settings",
+          "color": "text-status-green",
+          "folder": "WTF",
+          "extensions": [],
+          "file_type": "AddonSettings",
+          "classify_by_extension": {
+            "lua": "AddonSettings"
+          },
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": ["lua"],
+      "legacy_id": "WowClassicEra",
+      "path_correction": {
+        "known_subfolders": ["Interface", "AddOns", "WTF"],
+        "nested_corrections": { "AddOns": 2 }
+      }
+    },
+    {
+      "id": "wow_wotlk",
+      "label": "WoW WoTLK (3.3.5)",
+      "family": "wow",
+      "icon": "swords",
+      "color": "text-sky-400",
+      "primary_color": "#38bdf8",
+      "auto_detect": false,
+      "validation": {
+        "check_dirs": ["Interface"]
+      },
+      "content_types": [
+        {
+          "id": "addons",
+          "label": "Addons",
+          "icon": "package",
+          "color": "text-sky-400",
+          "folder": "Interface/AddOns",
+          "extensions": ["lua", "xml", "toc", "tga", "blp", "mp3", "ogg", "ttf", "txt"],
+          "file_type": "Addon",
+          "syncable": true
+        },
+        {
+          "id": "addon_settings",
+          "label": "Addon Settings",
+          "icon": "settings",
+          "color": "text-status-green",
+          "folder": "WTF",
+          "extensions": [],
+          "file_type": "AddonSettings",
+          "classify_by_extension": { "lua": "AddonSettings" },
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": ["lua"],
+      "legacy_id": "WowWotlk",
+      "path_correction": {
+        "known_subfolders": ["Interface", "AddOns", "WTF"],
+        "nested_corrections": { "AddOns": 2 }
+      }
+    },
+    {
+      "id": "wow_tbc",
+      "label": "WoW TBC (2.4.3)",
+      "family": "wow",
+      "icon": "swords",
+      "color": "text-emerald-400",
+      "primary_color": "#34d399",
+      "auto_detect": false,
+      "validation": {
+        "check_dirs": ["Interface"]
+      },
+      "content_types": [
+        {
+          "id": "addons",
+          "label": "Addons",
+          "icon": "package",
+          "color": "text-emerald-400",
+          "folder": "Interface/AddOns",
+          "extensions": ["lua", "xml", "toc", "tga", "blp", "mp3", "ogg", "ttf", "txt"],
+          "file_type": "Addon",
+          "syncable": true
+        },
+        {
+          "id": "addon_settings",
+          "label": "Addon Settings",
+          "icon": "settings",
+          "color": "text-status-green",
+          "folder": "WTF",
+          "extensions": [],
+          "file_type": "AddonSettings",
+          "classify_by_extension": { "lua": "AddonSettings" },
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": ["lua"],
+      "legacy_id": "WowTbc",
+      "path_correction": {
+        "known_subfolders": ["Interface", "AddOns", "WTF"],
+        "nested_corrections": { "AddOns": 2 }
+      }
+    },
+    {
+      "id": "wow_vanilla",
+      "label": "WoW Vanilla (1.12)",
+      "family": "wow",
+      "icon": "swords",
+      "color": "text-stone-400",
+      "primary_color": "#a8a29e",
+      "auto_detect": false,
+      "validation": {
+        "check_dirs": ["Interface"]
+      },
+      "content_types": [
+        {
+          "id": "addons",
+          "label": "Addons",
+          "icon": "package",
+          "color": "text-stone-400",
+          "folder": "Interface/AddOns",
+          "extensions": ["lua", "xml", "toc", "tga", "blp", "mp3", "ogg", "ttf", "txt"],
+          "file_type": "Addon",
+          "syncable": true
+        },
+        {
+          "id": "addon_settings",
+          "label": "Addon Settings",
+          "icon": "settings",
+          "color": "text-status-green",
+          "folder": "WTF",
+          "extensions": [],
+          "file_type": "AddonSettings",
+          "classify_by_extension": { "lua": "AddonSettings" },
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": ["lua"],
+      "legacy_id": "WowVanilla",
+      "path_correction": {
+        "known_subfolders": ["Interface", "AddOns", "WTF"],
+        "nested_corrections": { "AddOns": 2 }
+      }
+    },
+    {
+      "id": "wow_custom",
+      "label": "WoW Custom Server",
+      "family": "wow",
+      "icon": "swords",
+      "color": "text-gray-400",
+      "primary_color": "#9ca3af",
+      "auto_detect": false,
+      "validation": {
+        "check_dirs": ["Interface"]
+      },
+      "content_types": [
+        {
+          "id": "addons",
+          "label": "Addons",
+          "icon": "package",
+          "color": "text-gray-400",
+          "folder": "Interface/AddOns",
+          "extensions": ["lua", "xml", "toc", "tga", "blp", "mp3", "ogg", "ttf", "txt"],
+          "file_type": "Addon",
+          "syncable": true
+        },
+        {
+          "id": "addon_settings",
+          "label": "Addon Settings",
+          "icon": "settings",
+          "color": "text-status-green",
+          "folder": "WTF",
+          "extensions": [],
+          "file_type": "AddonSettings",
+          "classify_by_extension": { "lua": "AddonSettings" },
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": ["lua"],
+      "legacy_id": "WowCustom",
+      "path_correction": {
+        "known_subfolders": ["Interface", "AddOns", "WTF"],
+        "nested_corrections": { "AddOns": 2 }
+      }
+    },
+    {
+      "id": "warcraft3",
+      "label": "Warcraft III",
+      "family": "warcraft3",
+      "icon": "swords",
+      "color": "text-red-400",
+      "primary_color": "#f87171",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "documents_relative",
+            "base": "Warcraft III",
+            "folders": [""]
+          },
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "C:\\Program Files (x86)\\Warcraft III",
+                "C:\\Program Files\\Warcraft III",
+                "D:\\Warcraft III",
+                "D:\\Games\\Warcraft III"
+              ],
+              "macos": [
+                "/Applications/Warcraft III"
+              ],
+              "linux": []
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": ["Maps"],
+        "auto_create_dirs": ["Maps"]
+      },
+      "content_types": [
+        {
+          "id": "maps",
+          "label": "Custom Maps",
+          "icon": "map",
+          "color": "text-red-400",
+          "folder": "Maps",
+          "extensions": ["w3x", "w3m"],
+          "file_type": "Map",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": [],
+      "path_correction": {
+        "known_subfolders": ["Maps"]
+      }
+    },
+    {
+      "id": "minecraft_java",
+      "label": "Minecraft Java",
+      "family": "minecraft",
+      "icon": "box",
+      "color": "text-green-400",
+      "primary_color": "#4ade80",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "%APPDATA%\\.minecraft"
+              ],
+              "macos": [
+                "~/Library/Application Support/minecraft"
+              ],
+              "linux": [
+                "~/.minecraft"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": ["mods", "saves", "resourcepacks"]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "Mods",
+          "icon": "package",
+          "color": "text-green-400",
+          "folder": "mods",
+          "extensions": ["jar"],
+          "file_type": "Mod",
+          "syncable": true
+        },
+        {
+          "id": "saves",
+          "label": "Worlds",
+          "icon": "globe",
+          "color": "text-status-green",
+          "folder": "saves",
+          "extensions": [],
+          "file_type": "Save",
+          "syncable": true
+        },
+        {
+          "id": "resourcepacks",
+          "label": "Resource Packs",
+          "icon": "palette",
+          "color": "text-purple-400",
+          "folder": "resourcepacks",
+          "extensions": ["zip"],
+          "file_type": "ResourcePack",
+          "syncable": true
+        },
+        {
+          "id": "shaderpacks",
+          "label": "Shader Packs",
+          "icon": "sun",
+          "color": "text-sky-400",
+          "folder": "shaderpacks",
+          "extensions": ["zip"],
+          "file_type": "ShaderPack",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": ["jar"]
+    },
+    {
+      "id": "cs2",
+      "label": "Counter-Strike 2",
+      "family": "cs",
+      "icon": "crosshair",
+      "color": "text-orange-500",
+      "primary_color": "#f97316",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Counter-Strike Global Offensive\\game\\csgo",
+                "D:\\SteamLibrary\\steamapps\\common\\Counter-Strike Global Offensive\\game\\csgo"
+              ],
+              "macos": [],
+              "linux": [
+                "~/.steam/steam/steamapps/common/Counter-Strike Global Offensive/game/csgo"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": ["maps", "cfg"]
+      },
+      "content_types": [
+        {
+          "id": "maps",
+          "label": "Maps",
+          "icon": "map",
+          "color": "text-orange-500",
+          "folder": "maps",
+          "extensions": ["bsp", "nav"],
+          "file_type": "Map",
+          "syncable": true
+        },
+        {
+          "id": "cfg",
+          "label": "Configs",
+          "icon": "settings",
+          "color": "text-status-green",
+          "folder": "cfg",
+          "extensions": ["cfg"],
+          "file_type": "Config",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": []
+    },
+    {
+      "id": "gmod",
+      "label": "Garry's Mod",
+      "family": "source",
+      "icon": "wrench",
+      "color": "text-blue-500",
+      "primary_color": "#3b82f6",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "C:\\Program Files (x86)\\Steam\\steamapps\\common\\GarrysMod\\garrysmod",
+                "D:\\SteamLibrary\\steamapps\\common\\GarrysMod\\garrysmod"
+              ],
+              "macos": [],
+              "linux": [
+                "~/.steam/steam/steamapps/common/GarrysMod/garrysmod"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": ["addons"]
+      },
+      "content_types": [
+        {
+          "id": "addons",
+          "label": "Addons",
+          "icon": "package",
+          "color": "text-blue-500",
+          "folder": "addons",
+          "extensions": [],
+          "file_type": "Addon",
+          "syncable": true
+        },
+        {
+          "id": "maps",
+          "label": "Maps",
+          "icon": "map",
+          "color": "text-status-green",
+          "folder": "maps",
+          "extensions": ["bsp"],
+          "file_type": "Map",
+          "syncable": true
+        },
+        {
+          "id": "saves",
+          "label": "Saves",
+          "icon": "save",
+          "color": "text-purple-400",
+          "folder": "saves",
+          "extensions": [],
+          "file_type": "Save",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": ["lua"]
+    },
+    {
+      "id": "stardew_valley",
+      "label": "Stardew Valley",
+      "family": "stardew",
+      "icon": "sprout",
+      "color": "text-lime-400",
+      "primary_color": "#a3e635",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Stardew Valley",
+                "D:\\SteamLibrary\\steamapps\\common\\Stardew Valley"
+              ],
+              "macos": [
+                "~/Library/Application Support/Steam/steamapps/common/Stardew Valley/Contents/MacOS"
+              ],
+              "linux": [
+                "~/.steam/steam/steamapps/common/Stardew Valley"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": ["Mods"]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "SMAPI Mods",
+          "icon": "package",
+          "color": "text-lime-400",
+          "folder": "Mods",
+          "extensions": [],
+          "file_type": "Mod",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": ["dll"]
+    }
+  ]
+}

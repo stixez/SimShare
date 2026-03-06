@@ -3,535 +3,418 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SimShare — Sync Sims 2/3/4 Mods with Friends</title>
-  <meta name="description" content="Free, open-source desktop app to sync Sims 2, 3, and 4 mods, CC, and saves with friends over LAN. No cloud, no accounts, no uploads.">
-  <meta property="og:title" content="SimShare — Sync Sims 2/3/4 Mods with Friends">
-  <meta property="og:description" content="Free, open-source desktop app to sync Sims 2, 3, and 4 mods, CC, and saves with friends over LAN.">
+  <title>SyncCrate — The Easiest Way to Keep Modded Games in Sync</title>
+  <meta name="description" content="Free, open-source desktop app to sync game mods, addons, saves, and settings with friends. Peer-to-peer at LAN speed. Works on LAN and virtual LAN (Tailscale, ZeroTier). 15 games supported. No cloud, no accounts.">
+  <meta property="og:title" content="SyncCrate — Never Break a Modded Multiplayer Session Again">
+  <meta property="og:description" content="Sync game mods, addons, saves, and settings with friends. Peer-to-peer at LAN speed. 15 games supported. No cloud, no accounts.">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://stixez.github.io/SimShare/screenshots/dashboard.png">
   <meta property="og:url" content="https://stixez.github.io/SimShare">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="SimShare — Sync Sims 2/3/4 Mods with Friends">
-  <meta name="twitter:description" content="Free, open-source desktop app to sync Sims 2, 3, and 4 mods, CC, and saves with friends over LAN.">
+  <meta name="twitter:title" content="SyncCrate — Never Break a Modded Multiplayer Session Again">
+  <meta name="twitter:description" content="Sync game mods, addons, saves, and settings with friends. Peer-to-peer at LAN speed. 15 games supported. No cloud, no accounts.">
   <meta name="twitter:image" content="https://stixez.github.io/SimShare/screenshots/dashboard.png">
   <meta name="theme-color" content="#1ea84b">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231ea84b'/><path d='M16 6L10 12L16 18L22 12Z' fill='white' opacity='.9'/></svg>">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
       --green: #1ea84b;
       --green-light: #2ecc5e;
-      --green-dim: rgba(30, 168, 75, 0.15);
-      --bg: #0a0f14;
-      --bg-card: #111920;
-      --bg-card-hover: #162028;
-      --border: #1e2d38;
+      --green-glow: rgba(30, 168, 75, 0.4);
+      --green-dim: rgba(30, 168, 75, 0.12);
+      --bg: #060a0e;
+      --bg-card: #0c1218;
+      --bg-card-hover: #111920;
+      --border: #1a2633;
+      --border-light: #243344;
       --text: #e8ecf4;
       --text-dim: #7a8b9e;
-      --text-muted: #4a5568;
-      --yellow: #f5a623;
+      --text-muted: #3d4f63;
+      --yellow: #facc15;
     }
 
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
-      line-height: 1.65;
+      line-height: 1.6;
       -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
     }
 
     a { color: var(--green-light); text-decoration: none; transition: color 0.2s; }
     a:hover { color: #5dde80; }
 
-    code {
-      background: var(--green-dim);
-      color: var(--green-light);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.85em;
-      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
-    .container {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-
-    /* ─── Header ─── */
+    /* --- Header --- */
     header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(10, 15, 20, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(6, 10, 14, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(26, 38, 51, 0.6);
     }
 
     .header-inner {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 0 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 56px;
+      max-width: 1100px; margin: 0 auto; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between; height: 60px;
     }
 
     .header-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 1.05rem;
-      color: var(--text);
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: 1.1rem; color: var(--text); letter-spacing: -0.02em;
     }
-
-    .header-brand svg { width: 26px; height: 26px; }
-
+    .header-brand svg { width: 28px; height: 28px; filter: drop-shadow(0 0 8px var(--green-glow)); }
     .header-brand span { color: var(--green-light); }
 
-    .header-nav {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-    }
-
-    .header-nav a {
-      color: var(--text-dim);
-      font-size: 0.85rem;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-
+    .header-nav { display: flex; align-items: center; gap: 28px; }
+    .header-nav a { color: var(--text-dim); font-size: 0.85rem; font-weight: 500; }
     .header-nav a:hover { color: var(--text); }
 
-    .header-nav .btn-sm {
-      padding: 6px 16px;
-      border-radius: 8px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: white;
+    .btn-download-sm {
+      padding: 8px 20px; border-radius: 8px; font-size: 0.82rem; font-weight: 700;
+      color: white !important; background: var(--green);
+      box-shadow: 0 0 20px var(--green-glow); transition: all 0.2s;
     }
-
-    .header-nav .btn-sm:hover { color: white; }
+    .btn-download-sm:hover {
+      background: var(--green-light); box-shadow: 0 0 30px var(--green-glow);
+      color: white !important; transform: translateY(-1px);
+    }
 
     .btn-donate-sm {
-      color: var(--yellow) !important;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
+      color: var(--yellow) !important; display: inline-flex; align-items: center; gap: 5px; font-size: 0.85rem;
     }
-
-    .btn-donate-sm:hover { color: #fbb73a !important; }
-
+    .btn-donate-sm:hover { color: #fde047 !important; }
     .btn-donate-sm svg { width: 14px; height: 14px; }
 
-    .menu-toggle {
-      display: none;
-      background: none;
-      border: none;
-      color: var(--text-dim);
-      cursor: pointer;
-      padding: 4px;
-    }
-
+    .menu-toggle { display: none; background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 4px; }
     .menu-toggle svg { width: 24px; height: 24px; }
 
-    /* ─── Hero ─── */
+    /* --- Hero --- */
     .hero {
-      text-align: center;
-      padding: 100px 0 80px;
-      position: relative;
-      overflow: hidden;
+      text-align: center; padding: 160px 0 100px; position: relative; overflow: hidden;
     }
-
     .hero::before {
-      content: '';
-      position: absolute;
-      top: -60%;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(30, 168, 75, 0.08) 0%, transparent 70%);
+      content: ''; position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 800px;
+      background: radial-gradient(circle, rgba(30, 168, 75, 0.12) 0%, rgba(30, 168, 75, 0.03) 40%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.04) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 30%, rgba(250, 204, 21, 0.04) 0%, transparent 50%);
       pointer-events: none;
     }
 
-    .hero-logo {
-      width: 80px;
-      height: 80px;
-      margin-bottom: 28px;
-      filter: drop-shadow(0 0 24px rgba(30, 168, 75, 0.3));
+    .hero-content { position: relative; z-index: 1; }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px; border-radius: 100px;
+      background: var(--green-dim); border: 1px solid rgba(30, 168, 75, 0.25);
+      color: var(--green-light); font-size: 0.8rem; font-weight: 600;
+      margin-bottom: 32px; letter-spacing: 0.02em;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--green-light);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--green-glow); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 6px transparent; }
     }
 
     .hero h1 {
-      font-size: 3rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      margin-bottom: 16px;
-      line-height: 1.1;
+      font-size: 4.2rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 20px;
     }
-
-    .hero h1 span { color: var(--green-light); }
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, var(--green-light), #4ade80, var(--yellow));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
 
     .hero .tagline {
-      font-size: 1.2rem;
-      color: var(--text-dim);
-      max-width: 540px;
-      margin: 0 auto 40px;
-      line-height: 1.6;
+      font-size: 1.15rem; color: var(--text-dim);
+      max-width: 580px; margin: 0 auto 44px; line-height: 1.7;
     }
 
-    .downloads {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
+    .hero-ctas {
+      display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px;
     }
 
     .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 13px 28px;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      transition: all 0.2s ease;
-      border: none;
-      cursor: pointer;
-      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 15px 32px; border-radius: 12px; font-size: 0.95rem; font-weight: 700;
+      transition: all 0.25s ease; border: none; cursor: pointer; text-decoration: none;
     }
-
     .btn:hover { text-decoration: none; }
 
     .btn-primary {
-      background: var(--green);
-      color: white;
-      box-shadow: 0 2px 12px rgba(30, 168, 75, 0.3);
+      background: var(--green); color: white;
+      box-shadow: 0 0 30px var(--green-glow), 0 4px 16px rgba(0,0,0,0.3);
     }
-
     .btn-primary:hover {
-      background: var(--green-light);
-      color: white;
-      box-shadow: 0 4px 20px rgba(30, 168, 75, 0.4);
-      transform: translateY(-1px);
+      background: var(--green-light); color: white;
+      box-shadow: 0 0 50px var(--green-glow), 0 6px 24px rgba(0,0,0,0.3);
+      transform: translateY(-2px);
     }
 
     .btn-secondary {
-      background: var(--bg-card);
-      color: var(--text);
-      border: 1px solid var(--border);
+      background: var(--bg-card); color: var(--text); border: 1px solid var(--border-light);
     }
-
     .btn-secondary:hover {
-      background: var(--bg-card-hover);
-      color: var(--text);
-      border-color: #2a3d4d;
+      background: var(--bg-card-hover); color: var(--text);
+      border-color: var(--text-muted); transform: translateY(-2px);
     }
 
-    .hero-note {
-      font-size: 0.8rem;
-      color: var(--text-muted);
+    .hero-note { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* --- Divider line --- */
+    .line-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-light), transparent);
     }
 
-    /* ─── Section shared ─── */
-    section { padding: 80px 0; }
-
+    /* --- Section shared --- */
+    .section-label {
+      text-align: center; font-size: 0.75rem; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--green-light); margin-bottom: 16px;
+    }
     .section-title {
-      text-align: center;
-      font-size: 1.6rem;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      margin-bottom: 12px;
+      text-align: center; font-size: 2.4rem; font-weight: 800;
+      letter-spacing: -0.03em; margin-bottom: 12px; line-height: 1.15;
     }
-
     .section-subtitle {
-      text-align: center;
-      color: var(--text-dim);
-      font-size: 0.95rem;
-      margin-bottom: 48px;
-      max-width: 480px;
-      margin-left: auto;
-      margin-right: auto;
+      text-align: center; color: var(--text-dim); font-size: 1rem;
+      margin-bottom: 56px; max-width: 520px; margin-left: auto; margin-right: auto;
     }
 
-    .divider {
-      width: 48px;
-      height: 3px;
-      background: var(--green);
-      border-radius: 2px;
-      margin: 0 auto 48px;
+    /* --- Problem / Solution --- */
+    .problem-section { padding: 80px 0 0; }
+    .problem-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 900px; margin: 0 auto;
+    }
+    .problem-card, .solution-card {
+      border-radius: 16px; padding: 36px 32px;
+    }
+    .problem-card {
+      background: rgba(239, 68, 68, 0.04); border: 1px solid rgba(239, 68, 68, 0.15);
+    }
+    .solution-card {
+      background: var(--green-dim); border: 1px solid rgba(30, 168, 75, 0.2);
+    }
+    .problem-card h3, .solution-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
+    .problem-card h3 { color: #f87171; }
+    .solution-card h3 { color: var(--green-light); }
+    .problem-card p, .solution-card p { font-size: 0.88rem; color: var(--text-dim); line-height: 1.7; }
+    .problem-card ul, .solution-card ul {
+      list-style: none; padding: 0; margin: 12px 0 0;
+    }
+    .problem-card li, .solution-card li {
+      font-size: 0.85rem; color: var(--text-dim); padding: 4px 0; padding-left: 20px; position: relative;
+    }
+    .problem-card li::before { content: '✕'; position: absolute; left: 0; color: #f87171; font-weight: 700; font-size: 0.75rem; }
+    .solution-card li::before { content: '✓'; position: absolute; left: 0; color: var(--green-light); font-weight: 700; }
+
+    /* --- Game Showcase --- */
+    .games-section { padding: 80px 0 100px; }
+
+    .game-grid {
+      display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; max-width: 800px; margin: 0 auto;
     }
 
-    /* ─── Features ─── */
-    .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
+    .game-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 10px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      font-size: 0.88rem; font-weight: 600; color: var(--text);
+      transition: all 0.3s ease; cursor: default;
     }
+    .game-chip:hover {
+      transform: translateY(-3px); border-color: var(--chip-color, var(--border-light));
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3), 0 0 20px color-mix(in srgb, var(--chip-color, var(--green)) 20%, transparent);
+    }
+    .game-chip .game-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--chip-color, var(--green));
+      box-shadow: 0 0 8px var(--chip-color, var(--green));
+    }
+    .game-chip-more { color: var(--text-dim); border-style: dashed; font-weight: 500; }
+
+    /* --- Stat highlights --- */
+    .stats-row {
+      display: flex; justify-content: center; gap: 48px; padding: 32px 0 0; flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--green-light); }
+    .stat-label { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; margin-top: 4px; }
+
+    /* --- Screenshot Hero --- */
+    .screenshot-hero { padding: 0 0 100px; }
+
+    .screenshot-frame {
+      display: block; max-width: 900px; margin: 0 auto;
+      border-radius: 16px; overflow: hidden; border: 1px solid var(--border);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(30, 168, 75, 0.08);
+      transition: box-shadow 0.4s;
+    }
+    .screenshot-frame:hover {
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 60px rgba(30, 168, 75, 0.12);
+    }
+    .screenshot-frame img { width: 100%; display: block; }
+
+    /* --- Features --- */
+    .features-section { padding: 100px 0; }
+
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 
     .feature-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 28px 24px;
-      transition: border-color 0.25s, transform 0.25s;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 32px 28px; transition: all 0.3s ease; position: relative; overflow: hidden;
     }
-
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--green), transparent); opacity: 0; transition: opacity 0.3s;
+    }
     .feature-card:hover {
-      border-color: rgba(30, 168, 75, 0.3);
-      transform: translateY(-2px);
+      border-color: rgba(30, 168, 75, 0.3); transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
     }
+    .feature-card:hover::before { opacity: 1; }
 
     .feature-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: var(--green-dim);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      margin-bottom: 16px;
+      width: 44px; height: 44px; border-radius: 12px; background: var(--green-dim);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; margin-bottom: 18px;
+    }
+    .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.01em; }
+    .feature-card p { font-size: 0.85rem; color: var(--text-dim); line-height: 1.6; }
+
+    /* --- How it works --- */
+    .how-section {
+      padding: 100px 0; background: var(--bg-card);
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
     }
 
-    .feature-card h3 {
-      font-size: 0.95rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    .feature-card p {
-      font-size: 0.84rem;
-      color: var(--text-dim);
-      line-height: 1.55;
-    }
-
-    /* ─── Screenshots ─── */
-    .screenshot-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-    }
-
-    .screenshot-grid a {
-      display: block;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      transition: border-color 0.25s, transform 0.25s;
-    }
-
-    .screenshot-grid a:hover {
-      border-color: rgba(30, 168, 75, 0.3);
-      transform: translateY(-2px);
-    }
-
-    .screenshot-grid img {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    .screenshot-grid .screenshot-wide {
-      grid-column: 1 / -1;
-    }
-
-    .screenshot-label {
-      padding: 10px 16px;
-      background: var(--bg-card);
-      font-size: 0.82rem;
-      font-weight: 500;
-      color: var(--text-dim);
-    }
-
-    @media (max-width: 480px) {
-      .screenshot-grid { grid-template-columns: 1fr; }
-      .screenshot-grid .screenshot-wide { grid-column: auto; }
-    }
-
-    /* ─── How it works ─── */
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 32px;
-      position: relative;
-    }
-
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; position: relative; }
     .steps::before {
-      content: '';
-      position: absolute;
-      top: 20px;
-      left: 60px;
-      right: 60px;
-      height: 2px;
-      background: linear-gradient(to right, var(--green), var(--border));
-      z-index: 0;
+      content: ''; position: absolute; top: 28px; left: 80px; right: 80px; height: 2px;
+      background: linear-gradient(90deg, var(--green), var(--green-dim), var(--border)); z-index: 0;
     }
-
-    .step {
-      text-align: center;
-      position: relative;
-      z-index: 1;
-    }
-
+    .step { text-align: center; position: relative; z-index: 1; }
     .step-number {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      background: var(--green);
-      color: white;
-      font-weight: 700;
-      font-size: 1rem;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 12px rgba(30, 168, 75, 0.3);
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 56px; height: 56px; border-radius: 16px;
+      background: var(--bg); border: 2px solid var(--green);
+      color: var(--green-light); font-weight: 800; font-size: 1.2rem; margin-bottom: 20px;
+      box-shadow: 0 0 24px var(--green-glow); transition: all 0.3s;
+    }
+    .step:hover .step-number {
+      background: var(--green); color: white;
+      box-shadow: 0 0 40px var(--green-glow); transform: scale(1.1);
+    }
+    .step h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .step p { font-size: 0.84rem; color: var(--text-dim); line-height: 1.55; }
+
+    /* --- Screenshots Grid --- */
+    .screenshots-section { padding: 100px 0; }
+
+    .screenshot-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+    .screenshot-card {
+      display: block; border-radius: 14px; overflow: hidden;
+      border: 1px solid var(--border); transition: all 0.3s ease; background: var(--bg-card);
+    }
+    .screenshot-card:hover {
+      border-color: rgba(30, 168, 75, 0.3); transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    }
+    .screenshot-card img { width: 100%; height: auto; display: block; }
+    .screenshot-card .label { padding: 14px 18px; font-size: 0.82rem; font-weight: 600; color: var(--text-dim); }
+    .screenshot-card .label span { color: var(--text-muted); font-weight: 400; }
+
+    /* --- CTA --- */
+    .cta-section { padding: 100px 0; text-align: center; position: relative; }
+    .cta-section::before {
+      content: ''; position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(circle, rgba(30, 168, 75, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-section h2 { font-size: 2.6rem; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 16px; }
+    .cta-section p {
+      color: var(--text-dim); font-size: 1.05rem; margin-bottom: 40px;
+      max-width: 480px; margin-left: auto; margin-right: auto;
+    }
+    .cta-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+
+    .btn-donate {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 13px 28px; border-radius: 12px; font-size: 0.95rem; font-weight: 600;
+      background: rgba(250, 204, 21, 0.08); border: 1px solid rgba(250, 204, 21, 0.2);
+      color: var(--yellow); transition: all 0.25s;
+    }
+    .btn-donate:hover {
+      background: rgba(250, 204, 21, 0.14); border-color: rgba(250, 204, 21, 0.35);
+      color: var(--yellow); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(250, 204, 21, 0.1);
     }
 
-    .step h3 {
-      font-size: 0.95rem;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
+    .platforms { display: flex; justify-content: center; gap: 40px; padding: 20px 0; }
+    .platform { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; }
+    .platform svg { width: 18px; height: 18px; fill: var(--text-muted); }
 
-    .step p {
-      font-size: 0.84rem;
-      color: var(--text-dim);
-      line-height: 1.5;
-    }
-
-    /* ─── Platforms ─── */
-    .platforms {
-      background: var(--bg-card);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .platform-grid {
-      display: flex;
-      justify-content: center;
-      gap: 48px;
-      flex-wrap: wrap;
-    }
-
-    .platform-item {
-      text-align: center;
-    }
-
-    .platform-icon {
-      width: 48px;
-      height: 48px;
-      margin: 0 auto 10px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .platform-icon svg {
-      width: 24px;
-      height: 24px;
-      fill: var(--text-dim);
-    }
-
-    .platform-name {
-      font-size: 0.85rem;
-      font-weight: 500;
-      color: var(--text-dim);
-    }
-
-    /* ─── Footer ─── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 36px 0;
-    }
-
-    .footer-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-
-    .footer-left {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-    }
-
-    .footer-links {
-      display: flex;
-      gap: 24px;
-    }
-
-    .footer-links a {
-      color: var(--text-dim);
-      font-size: 0.82rem;
-      font-weight: 500;
-    }
-
+    /* --- Footer --- */
+    footer { border-top: 1px solid var(--border); padding: 32px 0; }
+    .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .footer-left { font-size: 0.8rem; color: var(--text-muted); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { color: var(--text-dim); font-size: 0.8rem; font-weight: 500; }
     .footer-links a:hover { color: var(--green-light); }
 
-    /* ─── Responsive ─── */
+    /* --- Responsive --- */
     @media (max-width: 768px) {
-      .hero { padding: 72px 0 56px; }
-      .hero h1 { font-size: 2.2rem; }
-      .hero .tagline { font-size: 1.05rem; }
+      .hero { padding: 120px 0 64px; }
+      .hero h1 { font-size: 2.8rem; }
+      .hero .tagline { font-size: 1rem; }
       .feature-grid { grid-template-columns: 1fr 1fr; }
-      .screenshot-grid { gap: 12px; }
       .steps { grid-template-columns: 1fr 1fr; gap: 24px; }
       .steps::before { display: none; }
-      .platform-grid { gap: 32px; }
-      section { padding: 60px 0; }
-
+      .screenshot-grid { gap: 12px; }
+      .cta-section h2 { font-size: 2rem; }
       .menu-toggle { display: block; }
-
       .header-nav {
-        display: none;
-        position: absolute;
-        top: 56px;
-        left: 0;
-        right: 0;
-        background: rgba(10, 15, 20, 0.95);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        display: none; position: absolute; top: 60px; left: 0; right: 0;
+        background: rgba(6, 10, 14, 0.95);
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
         border-bottom: 1px solid var(--border);
-        flex-direction: column;
-        padding: 16px 24px;
-        gap: 16px;
+        flex-direction: column; padding: 16px 24px; gap: 16px;
       }
-
       .header-nav.open { display: flex; }
-
       .header-nav a { font-size: 0.95rem; }
-
-      .header-nav .btn-sm {
-        text-align: center;
-        padding: 10px 16px;
-      }
+      .problem-grid { grid-template-columns: 1fr; }
+      .stats-row { gap: 32px; }
     }
 
     @media (max-width: 480px) {
-      .hero h1 { font-size: 1.8rem; }
-      .downloads { flex-direction: column; align-items: center; }
-      .btn { width: 100%; max-width: 280px; justify-content: center; }
-      .feature-grid { grid-template-columns: 1fr; }
-      .screenshot-grid { grid-template-columns: 1fr; }
-      .screenshot-grid .screenshot-wide { grid-column: auto; }
-      .steps { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 2.2rem; }
+      .hero-ctas, .cta-buttons { flex-direction: column; align-items: center; }
+      .btn, .btn-donate { width: 100%; max-width: 300px; justify-content: center; }
+      .feature-grid, .screenshot-grid, .steps { grid-template-columns: 1fr; }
+      .game-grid { gap: 8px; }
+      .game-chip { padding: 8px 14px; font-size: 0.8rem; }
       .footer-inner { flex-direction: column; text-align: center; }
+      .platforms { gap: 24px; flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -541,42 +424,45 @@
   <header>
     <div class="header-inner">
       <div class="header-brand">
-        <svg viewBox="0 0 32 32" fill="none">
-          <rect width="32" height="32" rx="8" fill="#1ea84b"/>
-          <path d="M16 6L10 12L16 18L22 12Z" fill="white" opacity="0.9"/>
-          <path d="M11 17L16 22L21 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+        <svg viewBox="0 0 512 512" width="28" height="28">
+          <defs><linearGradient id="hbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2ecc5e"/><stop offset="100%" stop-color="#1ea84b"/></linearGradient></defs>
+          <rect x="16" y="16" width="480" height="480" rx="96" fill="url(#hbg)"/>
+          <rect x="136" y="248" width="240" height="38" rx="10" fill="white"/>
+          <rect x="152" y="284" width="208" height="126" rx="10" fill="white" opacity="0.93"/>
+          <path d="M 194 140 A 72 72 0 0 1 318 140" fill="none" stroke="white" stroke-width="20" stroke-linecap="round"/>
+          <polygon points="332,162 322,132 300,152" fill="white"/>
+          <path d="M 318 212 A 72 72 0 0 1 194 212" fill="none" stroke="white" stroke-width="20" stroke-linecap="round"/>
+          <polygon points="180,190 190,220 212,200" fill="white"/>
         </svg>
-        <span>Sim</span>Share
+        <span>Sync</span>Crate
       </div>
       <button class="menu-toggle" aria-label="Menu" onclick="document.querySelector('.header-nav').classList.toggle('open')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <nav class="header-nav">
+        <a href="#games">Games</a>
         <a href="#features">Features</a>
         <a href="#screenshots">Screenshots</a>
-        <a href="#how-it-works">How It Works</a>
         <a href="https://github.com/stixez/SimShare">GitHub</a>
         <a href="https://www.buymeacoffee.com/stixe" class="btn-donate-sm">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
           Donate
         </a>
-        <a href="https://github.com/stixez/SimShare/releases/latest" class="btn-sm btn-primary">Download</a>
+        <a href="https://github.com/stixez/SimShare/releases/latest" class="btn-download-sm">Download</a>
       </nav>
     </div>
   </header>
 
   <!-- Hero -->
   <section class="hero">
-    <div class="container">
-      <svg class="hero-logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="32" height="32" rx="8" fill="#1ea84b"/>
-        <path d="M16 6L10 12L16 18L22 12Z" fill="white" opacity="0.9"/>
-        <path d="M11 17L16 22L21 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
-        <path d="M13 21L16 24L19 21" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
-      </svg>
-      <h1><span>Sim</span>Share</h1>
-      <p class="tagline">Sync your Sims 2, 3, and 4 mods, CC, and saves with friends over LAN. No cloud, no accounts, no uploads.</p>
-      <div class="downloads">
+    <div class="container hero-content">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        Open Source &middot; Free Forever
+      </div>
+      <h1>Never Break a<br><span class="gradient">Modded Session</span> Again</h1>
+      <p class="tagline">SyncCrate compares game folders between players and transfers only what's different. Peer-to-peer at LAN speed. Works on local networks and virtual LANs like Tailscale.</p>
+      <div class="hero-ctas">
         <a href="https://github.com/stixez/SimShare/releases/latest" class="btn btn-primary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Download for Free
@@ -586,148 +472,232 @@
           View Source
         </a>
       </div>
-      <p class="hero-note">Free &amp; open-source &middot; Windows, macOS, Linux</p>
+      <p class="hero-note">Windows &middot; macOS &middot; Linux</p>
     </div>
   </section>
 
-  <!-- Features -->
-  <section id="features">
+  <!-- Problem / Solution -->
+  <section class="problem-section">
     <div class="container">
-      <h2 class="section-title">Why SimShare?</h2>
-      <p class="section-subtitle">Everything you need to keep your Sims mods in sync with friends.</p>
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-icon">&#x1F3AE;</div>
-          <h3>Multi-Game Support</h3>
-          <p>Switch between Sims 2, Sims 3, and Sims 4 with per-game paths, profiles, and backups.</p>
+      <div class="problem-grid">
+        <div class="problem-card">
+          <h3>The Problem</h3>
+          <p>Playing modded games with friends means shared zip files, outdated mods, and broken sessions.</p>
+          <ul>
+            <li>Missing mods crash multiplayer</li>
+            <li>Wrong versions cause incompatibility</li>
+            <li>Manual copying takes hours</li>
+            <li>Cloud uploads are painfully slow</li>
+          </ul>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">&#x1F310;</div>
-          <h3>Peer-to-Peer</h3>
-          <p>Files transfer directly between computers at full LAN speed. Nothing leaves your network.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">&#x26A1;</div>
-          <h3>Smart Diffing</h3>
-          <p>Compares SHA-256 hashes. Only transfers what's actually different &mdash; identical files are skipped.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">&#x1F3F7;</div>
-          <h3>Mod Tags &amp; Search</h3>
-          <p>Organize mods with 12 built-in tags. Bulk-tag, filter, and search your collection.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">&#x1F4E5;</div>
-          <h3>Drag &amp; Drop Install</h3>
-          <p>Drop <code>.package</code>, <code>.ts4script</code>, <code>.zip</code>, or <code>.sims3pack</code> files to install instantly.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">&#x1F4BE;</div>
-          <h3>Backup &amp; Restore</h3>
-          <p>Full snapshot of your Mods, Saves, Tray, and Screenshots. Safety backup before every restore.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">&#x1F6E1;</div>
-          <h3>Conflict Resolution</h3>
-          <p>Keep yours, use theirs, or keep both. Every conflict is resolved on your terms.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">&#x1F4E6;</div>
-          <h3>DLC &amp; Pack Detection</h3>
-          <p>Detects installed expansion, game, and stuff packs. Warns about mod compatibility issues.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">&#x1F504;</div>
-          <h3>Auto-Update</h3>
-          <p>Check for and install updates directly from the app. Always stay on the latest version.</p>
+        <div class="solution-card">
+          <h3>The Solution</h3>
+          <p>SyncCrate scans both sides, shows differences, and transfers only what changed.</p>
+          <ul>
+            <li>Everyone gets the same mods and versions</li>
+            <li>100-900 MB/s transfer speed over LAN</li>
+            <li>No servers, no accounts, no tracking</li>
+            <li>Works with Tailscale and ZeroTier too</li>
+          </ul>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Screenshots -->
-  <section id="screenshots">
+  <!-- Game Showcase -->
+  <section class="games-section" id="games">
     <div class="container">
-      <h2 class="section-title">See It in Action</h2>
-      <p class="section-subtitle">A clean, focused interface built for getting things done.</p>
-      <div class="screenshot-grid">
-        <a href="screenshots/dashboard.png" class="screenshot-wide">
-          <img src="screenshots/dashboard.png" alt="SimShare Dashboard" loading="lazy">
-          <div class="screenshot-label">Dashboard &mdash; Session overview, sync plan, connected peers</div>
-        </a>
-        <a href="screenshots/mods-cc.png">
-          <img src="screenshots/mods-cc.png" alt="Mods & Custom Content" loading="lazy">
-          <div class="screenshot-label">Mods &amp; CC &mdash; Browse and resolve conflicts</div>
-        </a>
-        <a href="screenshots/saves.png">
-          <img src="screenshots/saves.png" alt="Save Files" loading="lazy">
-          <div class="screenshot-label">Saves &mdash; Save file management</div>
-        </a>
-        <a href="screenshots/profiles.png">
-          <img src="screenshots/profiles.png" alt="Mod Profiles" loading="lazy">
-          <div class="screenshot-label">Profiles &mdash; Snapshot and share mod setups</div>
-        </a>
-        <a href="screenshots/activity-log.png">
-          <img src="screenshots/activity-log.png" alt="Activity Log" loading="lazy">
-          <div class="screenshot-label">Activity Log &mdash; Real-time session events</div>
-        </a>
+      <div class="line-divider" style="margin-bottom: 80px"></div>
+      <p class="section-label">Supported Games</p>
+      <h2 class="section-title">One App, All Your Games</h2>
+      <p class="section-subtitle">Add games to your library. Each game gets its own dashboard, content browser, profiles, and backups.</p>
+      <div class="game-grid">
+        <div class="game-chip" style="--chip-color: #1ea84b"><span class="game-dot"></span>The Sims 4</div>
+        <div class="game-chip" style="--chip-color: #60a5fa"><span class="game-dot"></span>The Sims 3</div>
+        <div class="game-chip" style="--chip-color: #fb923c"><span class="game-dot"></span>The Sims 2</div>
+        <div class="game-chip" style="--chip-color: #facc15"><span class="game-dot"></span>WoW Retail</div>
+        <div class="game-chip" style="--chip-color: #fbbf24"><span class="game-dot"></span>WoW Classic</div>
+        <div class="game-chip" style="--chip-color: #38bdf8"><span class="game-dot"></span>WoW WotLK</div>
+        <div class="game-chip" style="--chip-color: #4ade80"><span class="game-dot"></span>Minecraft Java</div>
+        <div class="game-chip" style="--chip-color: #f97316"><span class="game-dot"></span>CS2</div>
+        <div class="game-chip" style="--chip-color: #3b82f6"><span class="game-dot"></span>Garry's Mod</div>
+        <div class="game-chip" style="--chip-color: #a3e635"><span class="game-dot"></span>Stardew Valley</div>
+        <div class="game-chip" style="--chip-color: #f87171"><span class="game-dot"></span>Warcraft III</div>
+        <div class="game-chip game-chip-more">+ more coming</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-value">15</div>
+          <div class="stat-label">Games supported</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">7</div>
+          <div class="stat-label">Game families</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Servers required</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Accounts needed</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshot Hero -->
+  <section class="screenshot-hero">
+    <div class="container">
+      <a href="screenshots/dashboard.png" class="screenshot-frame">
+        <img src="screenshots/dashboard.png" alt="SyncCrate Dashboard" loading="lazy">
+      </a>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features-section" id="features">
+    <div class="container">
+      <div class="line-divider" style="margin-bottom: 100px"></div>
+      <p class="section-label">Features</p>
+      <h2 class="section-title">Built for Modders</h2>
+      <p class="section-subtitle">Everything you need to keep your game mods in sync with friends.</p>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">&#x1F310;</div>
+          <h3>Peer-to-Peer</h3>
+          <p>Files transfer directly between computers at 100-900 MB/s. Nothing leaves your network. No cloud, no uploads.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x26A1;</div>
+          <h3>Smart Diffing</h3>
+          <p>SHA-256 hash comparison. Only transfers what's different — identical files are skipped automatically.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x1F6E1;&#xFE0F;</div>
+          <h3>Conflict Resolution</h3>
+          <p>Keep yours, use theirs, or keep both. Every conflict is resolved on your terms before any files move.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x1F3F7;&#xFE0F;</div>
+          <h3>Tags & Search</h3>
+          <p>Organize mods with built-in tags. Bulk-tag, filter, and search across your entire collection.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x1F4E6;</div>
+          <h3>Profiles & Sharing</h3>
+          <p>Snapshot your mod setup, export as a .synccrate-profile file, share on Discord. Friends drag it in and they're set.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x1F4BE;</div>
+          <h3>Backup & Restore</h3>
+          <p>Full snapshot of your game content. Safety backup created automatically before every restore.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x1F512;</div>
+          <h3>Privacy First</h3>
+          <p>No servers, no accounts, no tracking, no data collection. Files stay between you and your friends.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x1F50D;</div>
+          <h3>Auto-Detection</h3>
+          <p>Automatically finds your game folders. Detects installed DLC, packs, and checks mod compatibility.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x26A0;&#xFE0F;</div>
+          <h3>Script Warnings</h3>
+          <p>Flags potentially risky files (.ts4script, .lua, .jar, .dll) per game before syncing so you can review them.</p>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- How it works -->
-  <section id="how-it-works" style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <section class="how-section" id="how-it-works">
     <div class="container">
-      <h2 class="section-title">How It Works</h2>
-      <p class="section-subtitle">Four steps. No setup, no accounts, no configuration files.</p>
+      <p class="section-label">How It Works</p>
+      <h2 class="section-title">Four Steps. Zero Config.</h2>
+      <p class="section-subtitle">No setup files, no port forwarding, no accounts. Works on any network where devices can see each other.</p>
       <div class="steps">
         <div class="step">
           <div class="step-number">1</div>
           <h3>Host</h3>
-          <p>One person starts a session and begins broadcasting on the network.</p>
+          <p>Start a session and broadcast on your network.</p>
         </div>
         <div class="step">
           <div class="step-number">2</div>
           <h3>Join</h3>
-          <p>Friends scan for hosts and connect with one click.</p>
+          <p>Friends discover your session and connect instantly.</p>
         </div>
         <div class="step">
           <div class="step-number">3</div>
           <h3>Compare</h3>
-          <p>SimShare scans both mod folders and shows what's different.</p>
+          <p>SyncCrate scans both sides and shows what's different.</p>
         </div>
         <div class="step">
           <div class="step-number">4</div>
           <h3>Sync</h3>
-          <p>Resolve conflicts, hit sync, and files transfer at LAN speed.</p>
+          <p>Resolve conflicts, hit sync. Files transfer at LAN speed.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Platforms -->
-  <section class="platforms">
+  <!-- Screenshots Grid -->
+  <section class="screenshots-section" id="screenshots">
     <div class="container">
-      <h2 class="section-title">Cross-Platform</h2>
-      <p class="section-subtitle">Works on every platform The Sims runs on.</p>
-      <div class="platform-grid">
-        <div class="platform-item">
-          <div class="platform-icon">
-            <svg viewBox="0 0 24 24"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
-          </div>
-          <div class="platform-name">Windows</div>
+      <div class="line-divider" style="margin-bottom: 100px"></div>
+      <p class="section-label">Screenshots</p>
+      <h2 class="section-title">See It In Action</h2>
+      <p class="section-subtitle">Dark, focused interface built for getting things done.</p>
+      <div class="screenshot-grid">
+        <a href="screenshots/mods-cc.png" class="screenshot-card">
+          <img src="screenshots/mods-cc.png" alt="Content Browser" loading="lazy">
+          <div class="label">Content Browser <span>&mdash; Browse, tag, and manage mods</span></div>
+        </a>
+        <a href="screenshots/saves.png" class="screenshot-card">
+          <img src="screenshots/saves.png" alt="Save Files" loading="lazy">
+          <div class="label">Save Files <span>&mdash; Sync save games with friends</span></div>
+        </a>
+        <a href="screenshots/profiles.png" class="screenshot-card">
+          <img src="screenshots/profiles.png" alt="Mod Profiles" loading="lazy">
+          <div class="label">Profiles <span>&mdash; Snapshot and share mod setups</span></div>
+        </a>
+        <a href="screenshots/activity-log.png" class="screenshot-card">
+          <img src="screenshots/activity-log.png" alt="Activity Log" loading="lazy">
+          <div class="label">Activity Log <span>&mdash; Real-time session events</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="container">
+      <h2>Ready to Sync?</h2>
+      <p>Free, open-source, and built with love. No more zip files, no more mismatched mods.</p>
+      <div class="cta-buttons">
+        <a href="https://github.com/stixez/SimShare/releases/latest" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download for Free
+        </a>
+        <a href="https://www.buymeacoffee.com/stixe" class="btn-donate">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          Support the Project
+        </a>
+      </div>
+      <div class="platforms">
+        <div class="platform">
+          <svg viewBox="0 0 24 24"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+          Windows
         </div>
-        <div class="platform-item">
-          <div class="platform-icon">
-            <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-          </div>
-          <div class="platform-name">macOS</div>
+        <div class="platform">
+          <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          macOS
         </div>
-        <div class="platform-item">
-          <div class="platform-icon">
-            <svg viewBox="0 0 24 24"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a7.1 7.1 0 00.523 1.756c.55 1.187 1.263 2.142 1.973 2.969.713.829 1.423 1.528 1.958 2.088l.073.077c.287.307.553.541.785.654.395.186.583.061.766-.208.119-.174.214-.442.303-.831.046-.202.084-.433.123-.698a22 22 0 00.145-1.448c.019-.326.03-.696.03-1.084 0-.248-.016-.487-.048-.716a4.5 4.5 0 00-.18-.718 5 5 0 00-.14-.37c-.03-.068-.044-.097-.03-.078l.018-.009c.042-.02.123-.04.253-.04.398 0 1.063.128 1.063.128s.668.138 1.063.138c.131 0 .211.019.253.04l.018.008c.014-.02 0 .01-.03.078-.05.125-.098.247-.14.37a4.5 4.5 0 00-.18.718c-.032.23-.048.468-.048.716 0 .388.011.758.03 1.084.022.367.068.898.145 1.448.039.265.077.496.123.698.089.389.184.657.303.831.183.27.371.394.766.208.232-.113.498-.347.785-.654l.073-.077c.535-.56 1.245-1.259 1.958-2.088.71-.827 1.423-1.782 1.973-2.969a7.1 7.1 0 00.523-1.756c.123-.805-.009-1.657-.287-2.489-.589-1.771-1.831-3.47-2.716-4.521-.75-1.067-.974-1.928-1.05-3.02-.065-1.491 1.056-5.965-3.17-6.298A6 6 0 0012.504 0z"/></svg>
-          </div>
-          <div class="platform-name">Linux</div>
+        <div class="platform">
+          <svg viewBox="0 0 24 24"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a7.1 7.1 0 00.523 1.756c.55 1.187 1.263 2.142 1.973 2.969.713.829 1.423 1.528 1.958 2.088l.073.077c.287.307.553.541.785.654.395.186.583.061.766-.208.119-.174.214-.442.303-.831.046-.202.084-.433.123-.698a22 22 0 00.145-1.448c.019-.326.03-.696.03-1.084 0-.248-.016-.487-.048-.716a4.5 4.5 0 00-.18-.718 5 5 0 00-.14-.37c-.03-.068-.044-.097-.03-.078l.018-.009c.042-.02.123-.04.253-.04.398 0 1.063.128 1.063.128s.668.138 1.063.138c.131 0 .211.019.253.04l.018.008c.014-.02 0 .01-.03.078-.05.125-.098.247-.14.37a4.5 4.5 0 00-.18.718c-.032.23-.048.468-.048.716 0 .388.011.758.03 1.084.022.367.068.898.145 1.448.039.265.077.496.123.698.089.389.184.657.303.831.183.27.371.394.766.208.232-.113.498-.347.785-.654l.073-.077c.535-.56 1.245-1.259 1.958-2.088.71-.827 1.423-1.782 1.973-2.969a7.1 7.1 0 00.523-1.756c.123-.805-.009-1.657-.287-2.489-.589-1.771-1.831-3.47-2.716-4.521-.75-1.067-.974-1.928-1.05-3.02-.065-1.491 1.056-5.965-3.17-6.298A6 6 0 0012.504 0z"/></svg>
+          Linux
         </div>
       </div>
     </div>
@@ -737,9 +707,7 @@
   <footer>
     <div class="container">
       <div class="footer-inner">
-        <div class="footer-left">
-          &copy; 2026 SimShare &middot; MIT License
-        </div>
+        <div class="footer-left">&copy; 2026 SyncCrate &middot; MIT License</div>
         <div class="footer-links">
           <a href="https://github.com/stixez/SimShare">GitHub</a>
           <a href="https://github.com/stixez/SimShare/releases">Releases</a>

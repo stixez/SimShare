@@ -26,8 +26,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: tag,
-              name: `SimShare ${tag}`,
-              body: `## Downloads\n| Platform | File |\n|----------|------|\n| Windows | \`.exe\` installer |\n| macOS (Apple Silicon) | \`.dmg\` |\n| macOS (Intel) | \`.dmg\` |\n| Linux | \`.AppImage\` or \`.deb\` |\n\n> **macOS:** The app is not signed yet. If macOS says "app is damaged", open Terminal and run:\n> \`\`\`\n> xattr -cr /Applications/SimShare.app\n> \`\`\`\n> Then open SimShare normally.`,
+              name: `SyncCrate ${tag}`,
+              body: `## Downloads\n| Platform | File |\n|----------|------|\n| Windows | \`.exe\` installer |\n| macOS (Apple Silicon) | \`.dmg\` |\n| macOS (Intel) | \`.dmg\` |\n| Linux | \`.AppImage\` or \`.deb\` |\n\n> **macOS:** The app is not signed yet. If macOS says "app is damaged", open Terminal and run:\n> \`\`\`\n> xattr -cr /Applications/SyncCrate.app\n> \`\`\`\n> Then open SyncCrate normally.`,
               draft: false,
               prerelease: false,
             });
@@ -67,7 +67,7 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: simshare/src-tauri
+          workspaces: synccrate/src-tauri
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -88,7 +88,7 @@ jobs:
             libayatana-appindicator3-dev
 
       - name: Install frontend dependencies
-        working-directory: simshare
+        working-directory: synccrate
         run: npm ci
 
       - name: Build Tauri app
@@ -98,7 +98,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          projectPath: simshare
+          projectPath: synccrate
           releaseId: ${{ needs.create-release.outputs.release_id }}
           updaterJsonKeepUniversal: true
           args: --target ${{ matrix.target }}
