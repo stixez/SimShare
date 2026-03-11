@@ -54,7 +54,12 @@ pub fn run() {
             // Prefer games roughly by popularity / install likelihood
             let priority = [
                 "sims4", "minecraft_java", "wow_retail", "sims3",
-                "stardew_valley", "cs2", "gmod", "wow_classic",
+                "stardew_valley", "valheim", "terraria", "cod4", "cod2", "cod1",
+                "cs2", "gmod", "stronghold_crusader_hd", "stronghold_hd",
+                "stronghold_crusader_2", "stronghold_2", "space_engineers",
+                "trackmania2020", "tm2_stadium", "tmnf", "tmuf",
+                "satisfactory", "dst", "conan_exiles", "torchlight2", "riftbreaker",
+                "wow_classic",
                 "sims2", "warcraft3", "wow_classic_era",
                 "wow_wotlk", "wow_tbc", "wow_vanilla", "wow_custom",
             ];
@@ -210,6 +215,7 @@ pub fn run() {
             commands::profiles::delete_profile,
             commands::session::get_app_version,
             commands::session::set_session_port,
+            commands::session::check_port_available,
             commands::tags::get_predefined_tags,
             commands::tags::get_mod_tags,
             commands::tags::set_mod_tags,

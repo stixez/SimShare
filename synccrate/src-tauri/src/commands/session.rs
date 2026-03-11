@@ -252,6 +252,17 @@ pub async fn get_app_version() -> Result<String, String> {
 }
 
 #[tauri::command]
+pub async fn check_port_available(port: u16) -> Result<bool, String> {
+    if port < 1024 {
+        return Err("Port must be 1024 or higher".to_string());
+    }
+    match tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await {
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
+    }
+}
+
+#[tauri::command]
 pub async fn set_session_port(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
     port: u16,

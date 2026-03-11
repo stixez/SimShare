@@ -61,6 +61,10 @@ export async function setSessionPort(port: number): Promise<void> {
   return invoke("set_session_port", { port });
 }
 
+export async function checkPortAvailable(port: number): Promise<boolean> {
+  return invoke("check_port_available", { port });
+}
+
 // --- Files & Games ---
 
 export async function scanFiles(

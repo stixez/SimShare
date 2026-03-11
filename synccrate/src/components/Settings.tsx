@@ -76,11 +76,32 @@ export default function Settings() {
     }
   };
 
+  const [portStatus, setPortStatus] = useState<"idle" | "available" | "taken" | "checking">("idle");
+
+  const checkPort = async (value: string) => {
+    const p = parseInt(value, 10);
+    if (isNaN(p) || p < 1024 || p > 65535) {
+      setPortStatus("idle");
+      return;
+    }
+    setPortStatus("checking");
+    try {
+      const available = await cmd.checkPortAvailable(p);
+      setPortStatus(available ? "available" : "taken");
+    } catch {
+      setPortStatus("idle");
+    }
+  };
+
   const handlePortSave = async () => {
     const p = parseInt(port, 10);
     if (isNaN(p) || p < 1024 || p > 65535) {
       addLog("Port must be between 1024 and 65535", "error");
       toastError("Port must be between 1024 and 65535");
+      return;
+    }
+    if (portStatus === "taken") {
+      toastError(`Port ${p} is already in use`);
       return;
     }
     try {
@@ -196,19 +217,35 @@ export default function Settings() {
           <input
             type="number"
             value={port}
-            onChange={(e) => setPort(e.target.value)}
+            onChange={(e) => {
+              setPort(e.target.value);
+              checkPort(e.target.value);
+            }}
             min={1024}
             max={65535}
             aria-label="Session port"
-            className="w-32 bg-bg border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
+            className={`w-32 bg-bg border rounded-lg px-3 py-2 text-sm focus:outline-none ${
+              portStatus === "taken"
+                ? "border-status-red focus:border-status-red"
+                : portStatus === "available"
+                ? "border-status-green focus:border-status-green"
+                : "border-border focus:border-accent"
+            }`}
           />
           <button
             onClick={handlePortSave}
-            className="bg-accent hover:bg-accent-light text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+            disabled={portStatus === "taken"}
+            className="bg-accent hover:bg-accent-light text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Save Port
           </button>
         </div>
+        {portStatus === "taken" && (
+          <p className="text-xs text-status-red">Port is already in use. Choose a different port.</p>
+        )}
+        {portStatus === "available" && (
+          <p className="text-xs text-status-green">Port is available.</p>
+        )}
       </div>
 
       <div className="bg-bg-card rounded-xl border border-border p-5 space-y-4">

@@ -24,7 +24,7 @@
 
 - **Peer-to-peer at LAN speed** — Files transfer directly between computers at 100-900 MB/s. No cloud, no uploads, no waiting.
 - **Smart file diffing** — Compares SHA-256 hashes and only transfers what actually changed.
-- **15 games, 7 families** — Sims, WoW, Minecraft, CS2, Garry's Mod, Stardew Valley, Warcraft III. Data-driven registry — adding a game is just JSON.
+- **34 games, 18 families** — Sims, WoW, Minecraft, Valheim, Terraria, Satisfactory, and many more. Data-driven registry — adding a game is just JSON.
 - **Multi-peer sessions** — One host, multiple friends. Everyone syncs independently.
 - **Conflict resolution** — Keep yours, use theirs, or keep both — per file.
 - **Mod profiles & backups** — Snapshot your setup, export a `.synccrate-profile` file, share it on Discord — friends drag it into the app and they're done. Safety backup before every restore.
@@ -61,11 +61,24 @@ No cloud services. No accounts. No file uploads. Files move peer-to-peer at full
 
 ## Supported Games
 
+34 games across 18 families. Games are defined in a [JSON registry](synccrate/src-tauri/src/game_registry.json) — adding a game requires no code changes. See [Contributing](#contributing).
+
+<details>
+<summary><strong>The Sims</strong> — 3 games</summary>
+
 | Game | Content Types | Auto-Detect |
 |------|--------------|:-----------:|
 | **The Sims 4** | Mods, Saves, Tray, Screenshots | Yes |
 | **The Sims 3** | Mods & CC, Saves, Tray, Screenshots | Yes |
 | **The Sims 2** | Mods & CC, Neighborhoods, Tray, Screenshots | Yes |
+
+</details>
+
+<details>
+<summary><strong>World of Warcraft</strong> — 7 games</summary>
+
+| Game | Content Types | Auto-Detect |
+|------|--------------|:-----------:|
 | **WoW Retail** | Addons, Addon Settings | Yes |
 | **WoW Classic** | Addons, Addon Settings | Yes |
 | **WoW Classic Era** | Addons, Addon Settings | Yes |
@@ -73,13 +86,64 @@ No cloud services. No accounts. No file uploads. Files move peer-to-peer at full
 | **WoW TBC (2.4.3)** | Addons, Addon Settings | Manual |
 | **WoW Vanilla (1.12)** | Addons, Addon Settings | Manual |
 | **WoW Custom Server** | Addons, Addon Settings | Manual |
-| **Warcraft III** | Custom Maps | Yes |
+
+</details>
+
+<details>
+<summary><strong>Call of Duty</strong> — 3 games</summary>
+
+| Game | Content Types | Auto-Detect |
+|------|--------------|:-----------:|
+| **Call of Duty** | Mods | Yes |
+| **Call of Duty 2** | Mods | Yes |
+| **Call of Duty 4: Modern Warfare** | Mods, Custom Maps | Yes |
+
+</details>
+
+<details>
+<summary><strong>Stronghold</strong> — 4 games</summary>
+
+| Game | Content Types | Auto-Detect |
+|------|--------------|:-----------:|
+| **Stronghold HD** | Custom Maps | Yes |
+| **Stronghold: Crusader HD** | Custom Maps | Yes |
+| **Stronghold 2** | Custom Maps | Yes |
+| **Stronghold Crusader 2** | Custom Maps | Yes |
+
+</details>
+
+<details>
+<summary><strong>TrackMania</strong> — 4 games</summary>
+
+| Game | Content Types | Auto-Detect |
+|------|--------------|:-----------:|
+| **TrackMania Nations Forever** | Tracks, Replays, Skins | Yes |
+| **TrackMania United Forever** | Tracks, Replays, Skins | Yes |
+| **TrackMania 2: Stadium** | Maps, Replays, Skins | Yes |
+| **Trackmania (2020)** | Maps, Replays, Skins | Yes |
+
+</details>
+
+<details>
+<summary><strong>Other Games</strong> — 13 games</summary>
+
+| Game | Content Types | Auto-Detect |
+|------|--------------|:-----------:|
 | **Minecraft Java** | Mods, Worlds, Resource Packs, Shader Packs | Yes |
 | **Counter-Strike 2** | Maps, Configs | Yes |
 | **Garry's Mod** | Addons, Maps, Saves | Yes |
 | **Stardew Valley** | SMAPI Mods | Yes |
+| **Valheim** | Plugins (BepInEx), Mod Configs | Yes |
+| **Terraria** | Worlds, Players, tModLoader Mods, Resource Packs | Yes |
+| **Warcraft III** | Custom Maps | Yes |
+| **Space Engineers** | Mods, Worlds, Blueprints | Yes |
+| **Satisfactory** | Mods (SMM) | Yes |
+| **Don't Starve Together** | Mods | Yes |
+| **Conan Exiles** | Mods | Yes |
+| **Torchlight II** | Mods | Yes |
+| **The Riftbreaker** | Mods | Yes |
 
-Games are defined in a [JSON registry](synccrate/src-tauri/src/game_registry.json). Want your game supported? Add an entry — no code changes required. See [Contributing](#contributing).
+</details>
 
 ---
 
@@ -112,7 +176,7 @@ Games are defined in a [JSON registry](synccrate/src-tauri/src/game_registry.jso
 |-|---------|-------------|
 | **P2P** | Peer-to-peer transfer | Files move directly between computers. Nothing leaves your network. |
 | **Multi** | Multi-peer sessions | One host, multiple clients. Each client syncs independently. |
-| **Games** | Multi-game support | 15 games across 7 families. Data-driven registry — adding games is just JSON. |
+| **Games** | Multi-game support | 34 games across 18 families. Data-driven registry — adding games is just JSON. |
 | **mDNS** | Auto-discovery | Finds peers on your network automatically. No IPs to configure. |
 | **Diff** | Smart diffing | Compares file hashes. Only transfers what's actually different. |
 | **Resolve** | Conflict resolution | Keep yours, use theirs, or keep both — per file. |
@@ -299,7 +363,7 @@ Yes. One person hosts, multiple friends join. Each client syncs independently wi
 
 <details>
 <summary><strong>Which games are supported?</strong></summary>
-SyncCrate ships with 15 games across 7 families: Sims 2/3/4, WoW (Retail, Classic, Classic Era, plus WoTLK/TBC/Vanilla/Custom private servers), Warcraft III, Minecraft Java, CS2, Garry's Mod, and Stardew Valley. Games are defined in a JSON registry — adding new games requires no code changes.
+SyncCrate ships with 34 games across 18 families, including The Sims, WoW, Minecraft, Valheim, Terraria, Call of Duty, Stronghold, TrackMania, Satisfactory, and more. Games are defined in a JSON registry — adding new games requires no code changes.
 </details>
 
 <details>
@@ -323,8 +387,8 @@ SyncCrate never modifies existing files unless you explicitly choose "Use Theirs
 </details>
 
 <details>
-<summary><strong>Does it work with pirated copies of The Sims?</strong></summary>
-SyncCrate works with any Sims installation that has a standard Mods and Saves folder structure.
+<summary><strong>Does it work with non-Steam or pirated copies?</strong></summary>
+SyncCrate works with any game installation that has the expected folder structure. If auto-detection doesn't find your game, just set the path manually in Settings.
 </details>
 
 <details>
