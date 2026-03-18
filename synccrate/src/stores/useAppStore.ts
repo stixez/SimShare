@@ -7,6 +7,7 @@ import type {
   ModCompatibility,
   ModProfile,
   Page,
+  PeerDownloadProgress,
   PeerInfo,
   SessionStatus,
   SyncPlan,
@@ -85,12 +86,24 @@ interface AppState {
   modCompatibility: ModCompatibility[];
   setModCompatibility: (compat: ModCompatibility[]) => void;
 
+  // Per-peer download progress (host sees peers downloading)
+  peerDownloadProgress: Record<string, PeerDownloadProgress>;
+  setPeerDownloadProgress: (peerId: string, progress: PeerDownloadProgress | null) => void;
+  clearPeerDownloadProgress: () => void;
+
   modSearch: string;
   setModSearch: (search: string) => void;
   modFilter: "all" | "mod" | "cc";
   setModFilter: (filter: "all" | "mod" | "cc") => void;
   modTagFilter: string | null;
   setModTagFilter: (tag: string | null) => void;
+
+  // Last connected host info (for direct IP reconnect over VPN)
+  lastHostIp: string | null;
+  lastHostPort: number | null;
+  lastHostName: string | null;
+  setLastHost: (ip: string, port: number, name: string) => void;
+  clearLastHost: () => void;
 
   theme: "dark" | "light";
   setTheme: (theme: "dark" | "light") => void;
@@ -167,12 +180,41 @@ export const useAppStore = create<AppState>((set) => ({
   modCompatibility: [],
   setModCompatibility: (compat) => set({ modCompatibility: compat }),
 
+  peerDownloadProgress: {},
+  setPeerDownloadProgress: (peerId, progress) =>
+    set((state) => {
+      const updated = { ...state.peerDownloadProgress };
+      if (progress) {
+        updated[peerId] = progress;
+      } else {
+        delete updated[peerId];
+      }
+      return { peerDownloadProgress: updated };
+    }),
+  clearPeerDownloadProgress: () => set({ peerDownloadProgress: {} }),
+
   modSearch: "",
   setModSearch: (search) => set({ modSearch: search }),
   modFilter: "all",
   setModFilter: (filter) => set({ modFilter: filter }),
   modTagFilter: null,
   setModTagFilter: (tag) => set({ modTagFilter: tag }),
+
+  lastHostIp: sessionStorage.getItem("synccrate-last-host-ip"),
+  lastHostPort: Number(sessionStorage.getItem("synccrate-last-host-port")) || null,
+  lastHostName: sessionStorage.getItem("synccrate-last-host-name"),
+  setLastHost: (ip, port, name) => {
+    sessionStorage.setItem("synccrate-last-host-ip", ip);
+    sessionStorage.setItem("synccrate-last-host-port", String(port));
+    sessionStorage.setItem("synccrate-last-host-name", name);
+    set({ lastHostIp: ip, lastHostPort: port, lastHostName: name });
+  },
+  clearLastHost: () => {
+    sessionStorage.removeItem("synccrate-last-host-ip");
+    sessionStorage.removeItem("synccrate-last-host-port");
+    sessionStorage.removeItem("synccrate-last-host-name");
+    set({ lastHostIp: null, lastHostPort: null, lastHostName: null });
+  },
 
   theme:
     (localStorage.getItem("synccrate-theme") as "dark" | "light") || "dark",

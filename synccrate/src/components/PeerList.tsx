@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Users, Monitor, X, ChevronDown, ChevronRight, Gamepad2 } from "lucide-react";
+import { Users, Monitor, X, ChevronDown, ChevronRight, Gamepad2, ArrowUpFromLine } from "lucide-react";
 import { useAppStore } from "../stores/useAppStore";
+import { formatBytes } from "../lib/utils";
 import * as cmd from "../lib/commands";
 import { useLogStore } from "../stores/useLogStore";
 
@@ -14,6 +15,7 @@ const PACK_TYPE_LABELS: Record<string, string> = {
 export default function PeerList() {
   const session = useAppStore((s) => s.session);
   const gameInfo = useAppStore((s) => s.gameInfo);
+  const peerDownloadProgress = useAppStore((s) => s.peerDownloadProgress);
   const addLog = useLogStore((s) => s.addLog);
   const [expandedPeer, setExpandedPeer] = useState<string | null>(null);
 
@@ -56,6 +58,12 @@ export default function PeerList() {
           const peerPackCount = peerPacks.length;
           const isExpanded = expandedPeer === peer.id;
 
+          const dlProgress = peerDownloadProgress[peer.id];
+          const isDownloading = dlProgress && dlProgress.file;
+          const dlPercent = isDownloading && dlProgress.file_bytes_total > 0
+            ? Math.round((dlProgress.file_bytes_sent / dlProgress.file_bytes_total) * 100)
+            : 0;
+
           return (
             <div key={peer.id} className="bg-bg rounded-lg px-3 py-2">
               <div className="flex items-center gap-3">
@@ -91,6 +99,37 @@ export default function PeerList() {
                   </button>
                 )}
               </div>
+              {isHost && isDownloading && (
+                <div className="mt-2 ml-7">
+                  <div className="flex items-center gap-2 text-xs text-txt-dim mb-1">
+                    <ArrowUpFromLine size={10} className="text-accent-light" />
+                    <span className="truncate flex-1" title={dlProgress.file!}>
+                      Sending: {dlProgress.file!.split(/[/\\]/).pop()}
+                    </span>
+                    <span className="shrink-0">
+                      {formatBytes(dlProgress.file_bytes_sent)} / {formatBytes(dlProgress.file_bytes_total)}
+                    </span>
+                    <span className="shrink-0 text-accent-light font-medium">{dlPercent}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-bg-card rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-accent rounded-full transition-all duration-150"
+                      style={{ width: `${dlPercent}%` }}
+                    />
+                  </div>
+                  {dlProgress.files_sent > 0 && (
+                    <p className="text-[10px] text-txt-dim mt-1">
+                      {dlProgress.files_sent} file(s) sent
+                    </p>
+                  )}
+                </div>
+              )}
+              {isHost && !isDownloading && dlProgress && dlProgress.files_sent > 0 && (
+                <div className="mt-2 ml-7 flex items-center gap-2 text-xs text-txt-dim">
+                  <ArrowUpFromLine size={10} className="text-status-green" />
+                  <span>{dlProgress.files_sent} file(s) sent</span>
+                </div>
+              )}
               {isExpanded && peerPackCount > 0 && (
                 <div className="mt-2 ml-7 space-y-1.5">
                   {!hasLocalPacks && (

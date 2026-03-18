@@ -1,4 +1,4 @@
-import { Wifi, Globe } from "lucide-react";
+import { Wifi, Globe, AlertTriangle } from "lucide-react";
 import { open } from "@tauri-apps/plugin-shell";
 
 export default function ConnectionGuide() {
@@ -27,9 +27,15 @@ export default function ConnectionGuide() {
           >
             Tailscale
           </button>{" "}
-          (free). It creates a virtual LAN between your devices so SyncCrate works as if you were on
-          the same network.
+          (free). It creates a virtual LAN between your devices.
         </p>
+        <div className="mt-2 flex items-start gap-1.5 bg-status-yellow/5 rounded-lg p-2">
+          <AlertTriangle size={12} className="text-status-yellow shrink-0 mt-0.5" />
+          <p className="text-[11px] text-status-yellow/80 leading-relaxed">
+            Auto-discovery doesn't work over VPN. Use <span className="font-medium">Connect by IP</span> instead
+            — the host's VPN IP is shown in the Tailscale/ZeroTier app.
+          </p>
+        </div>
       </div>
     </div>
   );

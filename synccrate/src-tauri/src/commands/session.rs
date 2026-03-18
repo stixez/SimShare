@@ -199,7 +199,7 @@ pub async fn disconnect(
 
     discovery::stop_broadcast().await;
 
-    let _ = app.emit("peer-disconnected", serde_json::json!({"name": "all"}));
+    let _ = app.emit("peer-disconnected", serde_json::json!({"name": "all", "clean": true}));
 
     Ok(())
 }
@@ -243,6 +243,62 @@ pub async fn get_session_status(
         peers: app_state.peers(),
         is_syncing: app_state.is_any_syncing(),
         pin: app_state.session_pin.clone(),
+    })
+}
+
+#[tauri::command]
+pub async fn connect_by_ip(
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+    app: tauri::AppHandle,
+    ip: String,
+    port: u16,
+    name: String,
+    pin: Option<String>,
+) -> Result<SessionInfo, String> {
+    let name = sanitize_name(&name)?;
+    ip.parse::<std::net::IpAddr>().map_err(|_| "Invalid IP address".to_string())?;
+    if port < 1024 {
+        return Err("Port must be 1024 or higher".to_string());
+    }
+
+    let mut app_state = state.lock().await;
+    if app_state.session_type != SessionType::None {
+        return Err("Already in a session. Disconnect first.".to_string());
+    }
+
+    app_state.session_type = SessionType::Client;
+    app_state.session_name = format!("{}:{}", ip, port);
+    app_state.local_display_name = name;
+
+    let peer_id = uuid::Uuid::new_v4().to_string();
+    let state_clone = state.inner().clone();
+    drop(app_state);
+
+    let app_handle = app.clone();
+    let connect_ip = ip.clone();
+    let connect_peer_id = peer_id.clone();
+    tokio::spawn(async move {
+        if let Err(e) = crate::network::transfer::connect_to_host(
+            &connect_ip, port, &connect_peer_id, state_clone.clone(), app_handle.clone(), pin,
+        ).await {
+            log::error!("Direct IP connection error: {}", e);
+            let mut app_state = state_clone.lock().await;
+            app_state.connections.remove(&connect_peer_id);
+            app_state.session_type = SessionType::None;
+            app_state.session_name.clear();
+            app_state.local_display_name.clear();
+            let _ = app_handle.emit(
+                "connection-failed",
+                serde_json::json!({"message": format!("{}", e)}),
+            );
+        }
+    });
+
+    Ok(SessionInfo {
+        session_type: SessionType::Client,
+        name: ip,
+        port,
+        peer_count: 1,
     })
 }
 

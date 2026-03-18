@@ -340,6 +340,7 @@ export default function Settings() {
                 );
                 if (yes) {
                   addLog(`Downloading update v${update.version}...`, "info");
+                  try { await cmd.disconnect(); } catch {}
                   await update.downloadAndInstall();
                   await relaunch();
                 }

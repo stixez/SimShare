@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Monitor, Users, Package, HardDrive, RefreshCw, AlertTriangle, Lock, Copy, Check, FolderSync, Gamepad2, ChevronDown, ChevronRight, FolderOpen, Settings } from "lucide-react";
+import { Monitor, Users, Package, HardDrive, RefreshCw, AlertTriangle, Lock, Copy, Check, FolderSync, Gamepad2, ChevronDown, ChevronRight, FolderOpen, Settings, Globe } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { SyncFolderPermissions, GameInfo, ContentTypeDefinition } from "../lib/types";
 import { useAppStore } from "../stores/useAppStore";
@@ -31,7 +31,7 @@ export default function GameDashboard({ gameId }: Props) {
   const gamePaths = useAppStore((s) => s.gamePaths);
   const setGamePaths = useAppStore((s) => s.setGamePaths);
   const setPage = useAppStore((s) => s.setPage);
-  const { host, join, connectTo, leave, isLoading } = useSession();
+  const { host, join, connectTo, connectByIp, leave, isLoading } = useSession();
   const { computePlan, executeSync, resolveAll, isLoading: isSyncLoading, loadingPhase } = useSync();
 
   const gameDef = getGameDef(gameId);
@@ -50,6 +50,10 @@ export default function GameDashboard({ gameId }: Props) {
   const [pinCopied, setPinCopied] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [pinPeerId, setPinPeerId] = useState<string | null>(null);
+  const [showManualIp, setShowManualIp] = useState(false);
+  const [manualIp, setManualIp] = useState("");
+  const [manualPort, setManualPort] = useState("9847");
+  const [manualPin, setManualPin] = useState("");
 
   const gameInfo = useAppStore((s) => s.gameInfo);
   const setGameInfo = useAppStore((s) => s.setGameInfo);
@@ -318,6 +322,56 @@ export default function GameDashboard({ gameId }: Props) {
                 <button onClick={() => setPinPeerId(null)} className="text-xs text-txt-dim mt-2 hover:text-txt">Cancel</button>
               </div>
             )}
+            <div className="mt-3 border-t border-border pt-3">
+              <button
+                onClick={() => setShowManualIp(!showManualIp)}
+                className="flex items-center gap-1.5 text-xs text-txt-dim hover:text-txt transition-colors"
+              >
+                <Globe size={12} />
+                {showManualIp ? "Hide" : "Connect by IP address"}
+                {showManualIp ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              </button>
+              {showManualIp && (
+                <div className="mt-2 space-y-2">
+                  <p className="text-[11px] text-txt-dim">For VPN/Tailscale users — enter the host's IP directly.</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={manualIp}
+                      onChange={(e) => setManualIp(e.target.value.trim())}
+                      placeholder="IP address (e.g. 100.64.1.5)"
+                      className="flex-1 bg-bg border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-accent"
+                    />
+                    <input
+                      type="text"
+                      value={manualPort}
+                      onChange={(e) => setManualPort(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                      placeholder="9847"
+                      className="w-20 bg-bg border border-border rounded-lg px-3 py-1.5 text-sm text-center focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={manualPin}
+                    onChange={(e) => setManualPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="PIN (optional)"
+                    className="w-full bg-bg border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-accent"
+                  />
+                  <button
+                    onClick={() => {
+                      const port = parseInt(manualPort) || 9847;
+                      connectByIp(manualIp, port, hostName.trim() || "Guest", manualPin || undefined);
+                    }}
+                    disabled={!manualIp || isLoading}
+                    className="w-full bg-accent/20 hover:bg-accent/30 text-accent-light rounded-lg px-4 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    {isLoading ? "Connecting..." : "Connect by IP"}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -433,6 +487,15 @@ export default function GameDashboard({ gameId }: Props) {
             {pinCopied ? <Check size={14} className="text-status-green" /> : <Copy size={14} />}
             {pinCopied ? "Copied" : "Copy"}
           </button>
+        </div>
+      )}
+
+      {isHost && (
+        <div className="bg-bg-card rounded-xl border border-border p-3 flex items-center gap-3">
+          <Globe size={16} className="text-txt-dim shrink-0" />
+          <p className="text-xs text-txt-dim">
+            VPN/Tailscale users: share your IP address and port <span className="font-mono text-txt font-medium">{session.port}</span> so others can use <span className="font-medium text-txt">Connect by IP</span>.
+          </p>
         </div>
       )}
 

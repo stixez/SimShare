@@ -62,6 +62,8 @@ async fn get_or_create_token() -> CancellationToken {
         if !token.is_cancelled() {
             return token.clone();
         }
+        // Clear stale cancelled token before creating a new one
+        guard.take();
     }
     let token = CancellationToken::new();
     *guard = Some(token.clone());
@@ -253,6 +255,7 @@ async fn handle_client(
     // Handle messages in a loop (5-minute idle timeout; TCP keepalive detects dead connections)
     let mut clean_disconnect = false;
     let mut disconnect_reason = String::new();
+    let mut peer_files_sent: u64 = 0;
     loop {
         let msg = {
             let mut s = stream.lock().await;
@@ -382,6 +385,19 @@ async fn handle_client(
                         )
                         .await?;
 
+                        // Emit initial progress for this file
+                        let _ = app.emit(
+                            "peer-download-progress",
+                            serde_json::json!({
+                                "peer_id": &peer_id,
+                                "peer_name": &peer_name,
+                                "file": &path,
+                                "file_bytes_sent": 0u64,
+                                "file_bytes_total": file_size,
+                                "files_sent": peer_files_sent,
+                            }),
+                        );
+
                         // Second pass: re-read and send chunks
                         // Seek back to start
                         use tokio::io::AsyncSeekExt;
@@ -399,9 +415,37 @@ async fn handle_client(
                             )
                             .await?;
                             offset += n as u64;
+
+                            // Emit chunk progress to frontend
+                            let _ = app.emit(
+                                "peer-download-progress",
+                                serde_json::json!({
+                                    "peer_id": &peer_id,
+                                    "peer_name": &peer_name,
+                                    "file": &path,
+                                    "file_bytes_sent": offset,
+                                    "file_bytes_total": file_size,
+                                    "files_sent": peer_files_sent,
+                                }),
+                            );
                         }
 
+                        peer_files_sent += 1;
                         protocol::send_message(&mut *s, &Message::FileComplete { path }).await?;
+
+                        // Emit completion for this file
+                        let null_file: Option<&str> = None;
+                        let _ = app.emit(
+                            "peer-download-progress",
+                            serde_json::json!({
+                                "peer_id": &peer_id,
+                                "peer_name": &peer_name,
+                                "file": null_file,
+                                "file_bytes_sent": 0u64,
+                                "file_bytes_total": 0u64,
+                                "files_sent": peer_files_sent,
+                            }),
+                        );
                     }
                     Err(e) => {
                         log::error!("File read error: {}", e);

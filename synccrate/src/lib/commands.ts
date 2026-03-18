@@ -49,6 +49,15 @@ export async function getSessionStatus(): Promise<SessionStatus> {
   return invoke("get_session_status");
 }
 
+export async function connectByIp(
+  ip: string,
+  port: number,
+  name: string,
+  pin?: string,
+): Promise<SessionInfo> {
+  return invoke("connect_by_ip", { ip, port, name, pin });
+}
+
 export async function disconnectPeer(peerId: string): Promise<void> {
   return invoke("disconnect_peer", { peerId });
 }

@@ -115,6 +115,15 @@ export interface SyncProgress {
   peer_id?: string;
 }
 
+export interface PeerDownloadProgress {
+  peer_id: string;
+  peer_name: string;
+  file: string | null;
+  file_bytes_sent: number;
+  file_bytes_total: number;
+  files_sent: number;
+}
+
 export interface LogEntry {
   id: string;
   timestamp: number;

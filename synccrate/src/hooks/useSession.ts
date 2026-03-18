@@ -53,6 +53,20 @@ export function useSession() {
     }
   };
 
+  const connectByIp = async (ip: string, port: number, name: string, pin?: string) => {
+    setIsLoading(true);
+    try {
+      addLog(`Connecting to ${ip}:${port}...`, "info");
+      await cmd.connectByIp(ip, port, name, pin);
+      const status = await cmd.getSessionStatus();
+      setSession(status);
+    } catch (e: any) {
+      addLog(`Failed to connect: ${e}`, "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const leave = async () => {
     setIsLoading(true);
     try {
@@ -61,6 +75,7 @@ export function useSession() {
       setDiscoveredPeers([]);
       setSyncPlan(null);
       setSyncProgress(null);
+      useAppStore.getState().clearLastHost();
       addLog("Disconnected", "info");
     } catch (e: any) {
       addLog(`Failed to disconnect: ${e}`, "error");
@@ -69,5 +84,5 @@ export function useSession() {
     }
   };
 
-  return { host, join, connectTo, leave, isLoading };
+  return { host, join, connectTo, connectByIp, leave, isLoading };
 }

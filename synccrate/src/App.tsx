@@ -107,6 +107,8 @@ function App() {
               onClick: async () => {
                 toast.loading("Downloading update...", { id: "update" });
                 try {
+                  // Disconnect active session to release TCP connections
+                  try { await cmd.disconnect(); } catch {}
                   await update.downloadAndInstall();
                   await relaunch();
                 } catch {

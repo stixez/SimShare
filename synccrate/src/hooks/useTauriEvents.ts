@@ -3,6 +3,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useAppStore } from "../stores/useAppStore";
 import { useLogStore } from "../stores/useLogStore";
+import type { PeerDownloadProgress } from "../lib/types";
 import * as cmd from "../lib/commands";
 
 function sendNotification(title: string, body: string) {
@@ -29,6 +30,7 @@ export function useTauriEvents() {
   const setManifest = useAppStore((s) => s.setManifest);
   const setIsDragging = useAppStore((s) => s.setIsDragging);
   const setIsScanning = useAppStore((s) => s.setIsScanning);
+  const setPeerDownloadProgress = useAppStore((s) => s.setPeerDownloadProgress);
   const addLog = useLogStore((s) => s.addLog);
 
   const notifRequested = useRef(false);
@@ -60,6 +62,8 @@ export function useTauriEvents() {
       cancelRetry();
       retryRef.current.active = true;
 
+      const { lastHostIp, lastHostPort } = useAppStore.getState();
+
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         if (!retryRef.current.active || cancelled) return;
 
@@ -72,7 +76,35 @@ export function useTauriEvents() {
 
         if (!retryRef.current.active || cancelled) return;
 
+        // Try direct IP reconnect first (works over VPN/Tailscale)
+        if (lastHostIp && lastHostPort) {
+          try {
+            await cmd.connectByIp(lastHostIp, lastHostPort, localName);
+            // connectByIp spawns in background — wait briefly for connection-failed or peer-connected
+            await new Promise((r) => setTimeout(r, 2000));
+            const status = await cmd.getSessionStatus();
+            if (status.session_type === "Client" && status.peers.length > 0) {
+              setSession(status);
+              addLog(`Reconnected to ${hostName} via direct IP`, "success");
+              sendNotification("SyncCrate", `Reconnected to ${hostName}`);
+              retryRef.current.active = false;
+              return;
+            }
+            // Connection was attempted but failed (state reset by error handler)
+            addLog("Direct IP reconnect failed, trying network scan...", "info");
+          } catch {
+            addLog("Direct IP reconnect failed, trying network scan...", "info");
+          }
+        }
+
+        // Fallback: mDNS scan (works on same LAN)
+        // Only attempt if session is clean (direct IP error handler may need time to reset)
         try {
+          const preStatus = await cmd.getSessionStatus();
+          if (preStatus.session_type !== "None") {
+            // Session still pending from direct IP attempt — skip mDNS this round
+            continue;
+          }
           const peers = await cmd.startJoin(localName);
           const match = peers.find((p) => p.name === hostName);
           if (match) {
@@ -116,14 +148,23 @@ export function useTauriEvents() {
           try {
             const status = await cmd.getSessionStatus();
             setSession(status);
+            // Store host info for direct IP reconnect (clients only)
+            if (status.session_type === "Client" && status.peers.length > 0) {
+              const host = status.peers[0];
+              if (host.ip) {
+                useAppStore.getState().setLastHost(host.ip, host.port, host.name);
+              }
+            }
           } catch {
             // Ignore if session status fetch fails
           }
         }),
-        listen<{ name: string; clean?: boolean; reason?: string }>("peer-disconnected", async (event) => {
-          const { name, clean, reason } = event.payload;
+        listen<{ name: string; clean?: boolean; reason?: string; peer_id?: string }>("peer-disconnected", async (event) => {
+          const { name, clean, reason, peer_id } = event.payload;
           setIsScanning(false);
+          if (peer_id) setPeerDownloadProgress(peer_id, null);
           if (clean) {
+            cancelRetry(); // Stop any in-progress reconnect attempts
             addLog(`Peer disconnected: ${name}`, "info");
           } else {
             addLog(`Peer lost: ${name}${reason ? ` (${reason})` : ""}`, "warning");
@@ -175,6 +216,10 @@ export function useTauriEvents() {
         }),
         listen<{ message: string }>("sync-error", (event) => {
           addLog(`Sync error: ${event.payload.message}`, "error");
+        }),
+        // Host sees peer download progress
+        listen<PeerDownloadProgress>("peer-download-progress", (event) => {
+          setPeerDownloadProgress(event.payload.peer_id, event.payload);
         }),
         // Peer game info exchange
         listen<{ peer_id: string }>("peer-game-info", async () => {
@@ -228,5 +273,5 @@ export function useTauriEvents() {
       cancelRetry();
       unlisteners.forEach((fn) => fn());
     };
-  }, [setSyncProgress, setSyncPlan, setSession, setManifest, setIsDragging, setIsScanning, addLog]);
+  }, [setSyncProgress, setSyncPlan, setSession, setManifest, setIsDragging, setIsScanning, setPeerDownloadProgress, addLog]);
 }

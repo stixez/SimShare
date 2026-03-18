@@ -187,6 +187,7 @@ pub fn run() {
             commands::session::start_host,
             commands::session::start_join,
             commands::session::connect_to_peer,
+            commands::session::connect_by_ip,
             commands::session::disconnect,
             commands::session::disconnect_peer,
             commands::session::get_session_status,
