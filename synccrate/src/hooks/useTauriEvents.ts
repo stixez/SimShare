@@ -124,6 +124,7 @@ export function useTauriEvents() {
 
       retryRef.current.active = false;
       addLog("Could not reconnect. Please rejoin manually.", "error");
+      addLog("If using VPN/Tailscale, make sure the host has allowed SyncCrate through their firewall.", "info");
       sendNotification("SyncCrate", "Connection lost. Could not reconnect.");
     }
 
@@ -186,7 +187,13 @@ export function useTauriEvents() {
           }
         }),
         listen<{ message: string }>("connection-failed", (event) => {
-          addLog(`Connection failed: ${event.payload.message}`, "error");
+          const msg = event.payload.message;
+          addLog(`Connection failed: ${msg}`, "error");
+          // Detect firewall / connection-reset errors and show guidance
+          const isFirewall = /10054|10061|forcibly closed|connection refused|connection reset/i.test(msg);
+          if (isFirewall) {
+            addLog("This is usually a firewall issue. The HOST must allow SyncCrate through Windows Firewall (both Private and Public networks). See the connection guide below for steps.", "warning");
+          }
           setIsScanning(false);
           setSession(null);
         }),

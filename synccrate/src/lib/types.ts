@@ -71,6 +71,7 @@ export interface SessionStatus {
   peers: PeerInfo[];
   is_syncing: boolean;
   pin: string | null;
+  host_ips: string[];
 }
 
 export interface SyncAction {

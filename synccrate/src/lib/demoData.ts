@@ -352,6 +352,7 @@ export const demoSession: SessionStatus = {
   ],
   is_syncing: false,
   pin: "4829",
+  host_ips: ["192.168.1.10", "100.64.0.1"],
 };
 
 // --- Sync Plan (with conflicts) ---

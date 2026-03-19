@@ -24,7 +24,7 @@
 
 - **Peer-to-peer at LAN speed** — Files transfer directly between computers at 100-900 MB/s. No cloud, no uploads, no waiting.
 - **Smart file diffing** — Compares SHA-256 hashes and only transfers what actually changed.
-- **34 games, 18 families** — Sims, WoW, Minecraft, Valheim, Terraria, Satisfactory, and many more. Data-driven registry — adding a game is just JSON.
+- **40 games, 24 families** — Sims, WoW, Minecraft, Valheim, Terraria, Satisfactory, and many more. Data-driven registry — adding a game is just JSON.
 - **Multi-peer sessions** — One host, multiple friends. Everyone syncs independently.
 - **Conflict resolution** — Keep yours, use theirs, or keep both — per file.
 - **Mod profiles & backups** — Snapshot your setup, export a `.synccrate-profile` file, share it on Discord — friends drag it into the app and they're done. Safety backup before every restore.
@@ -61,7 +61,7 @@ No cloud services. No accounts. No file uploads. Files move peer-to-peer at full
 
 ## Supported Games
 
-34 games across 18 families. Games are defined in a [JSON registry](synccrate/src-tauri/src/game_registry.json) — adding a game requires no code changes. See [Contributing](#contributing).
+40 games across 24 families. Games are defined in a [JSON registry](synccrate/src-tauri/src/game_registry.json) — adding a game requires no code changes. See [Contributing](#contributing).
 
 <details>
 <summary><strong>The Sims</strong> — 3 games</summary>
@@ -125,7 +125,7 @@ No cloud services. No accounts. No file uploads. Files move peer-to-peer at full
 </details>
 
 <details>
-<summary><strong>Other Games</strong> — 13 games</summary>
+<summary><strong>Other Games</strong> — 19 games</summary>
 
 | Game | Content Types | Auto-Detect |
 |------|--------------|:-----------:|
@@ -142,6 +142,12 @@ No cloud services. No accounts. No file uploads. Files move peer-to-peer at full
 | **Conan Exiles** | Mods | Yes |
 | **Torchlight II** | Mods | Yes |
 | **The Riftbreaker** | Mods | Yes |
+| **RimWorld** | Mods, Saves | Yes |
+| **Cities: Skylines** | Mods, Assets, Saves, Maps | Yes |
+| **Euro Truck Simulator 2** | Mods, Profiles | Yes |
+| **Factorio** | Mods, Saves, Scenarios | Yes |
+| **Palworld** | Mods | Yes |
+| **Left 4 Dead 2** | Addons & Maps, Configs | Yes |
 
 </details>
 
@@ -176,7 +182,7 @@ No cloud services. No accounts. No file uploads. Files move peer-to-peer at full
 |-|---------|-------------|
 | **P2P** | Peer-to-peer transfer | Files move directly between computers. Nothing leaves your network. |
 | **Multi** | Multi-peer sessions | One host, multiple clients. Each client syncs independently. |
-| **Games** | Multi-game support | 34 games across 18 families. Data-driven registry — adding games is just JSON. |
+| **Games** | Multi-game support | 40 games across 24 families. Data-driven registry — adding games is just JSON. |
 | **mDNS** | Auto-discovery | Finds peers on your network automatically. No IPs to configure. |
 | **Diff** | Smart diffing | Compares file hashes. Only transfers what's actually different. |
 | **Resolve** | Conflict resolution | Keep yours, use theirs, or keep both — per file. |
@@ -363,7 +369,7 @@ Yes. One person hosts, multiple friends join. Each client syncs independently wi
 
 <details>
 <summary><strong>Which games are supported?</strong></summary>
-SyncCrate ships with 34 games across 18 families, including The Sims, WoW, Minecraft, Valheim, Terraria, Call of Duty, Stronghold, TrackMania, Satisfactory, and more. Games are defined in a JSON registry — adding new games requires no code changes.
+SyncCrate ships with 40 games across 24 families, including The Sims, WoW, Minecraft, Valheim, Terraria, Call of Duty, Stronghold, TrackMania, Satisfactory, and more. Games are defined in a JSON registry — adding new games requires no code changes.
 </details>
 
 <details>

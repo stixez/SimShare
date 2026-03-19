@@ -82,6 +82,8 @@ pub struct SessionStatus {
     pub peers: Vec<PeerInfo>,
     pub is_syncing: bool,
     pub pin: Option<String>,
+    #[serde(default)]
+    pub host_ips: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

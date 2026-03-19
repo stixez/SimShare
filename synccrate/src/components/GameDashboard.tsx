@@ -333,7 +333,7 @@ export default function GameDashboard({ gameId }: Props) {
               </button>
               {showManualIp && (
                 <div className="mt-2 space-y-2">
-                  <p className="text-[11px] text-txt-dim">For VPN/Tailscale users — enter the host's IP directly.</p>
+                  <p className="text-[11px] text-txt-dim">For VPN/Tailscale users — enter the host's IP directly. The host must allow SyncCrate through their firewall.</p>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -490,12 +490,30 @@ export default function GameDashboard({ gameId }: Props) {
         </div>
       )}
 
-      {isHost && (
-        <div className="bg-bg-card rounded-xl border border-border p-3 flex items-center gap-3">
-          <Globe size={16} className="text-txt-dim shrink-0" />
-          <p className="text-xs text-txt-dim">
-            VPN/Tailscale users: share your IP address and port <span className="font-mono text-txt font-medium">{session.port}</span> so others can use <span className="font-medium text-txt">Connect by IP</span>.
-          </p>
+      {isHost && session.host_ips && session.host_ips.length > 0 && (
+        <div className="bg-bg-card rounded-xl border border-border p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Globe size={14} className="text-txt-dim" />
+            <span className="text-xs text-txt-dim">Share one of these with friends to connect:</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {session.host_ips.map((ip) => (
+              <button
+                key={ip}
+                onClick={() => {
+                  navigator.clipboard.writeText(`${ip}:${session.port}`);
+                  addLog(`Copied ${ip}:${session.port} to clipboard`, "info");
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-elevated border border-border hover:border-accent/40 text-sm font-mono transition-colors group"
+                title="Click to copy"
+              >
+                <span className="text-txt font-medium">{ip}:{session.port}</span>
+                <Copy size={12} className="text-txt-muted group-hover:text-accent-light transition-colors" />
+                {ip.startsWith("100.") && <span className="text-[10px] text-accent-light/70 font-sans ml-1">Tailscale</span>}
+                {ip.startsWith("10.147.") && <span className="text-[10px] text-blue-400/70 font-sans ml-1">ZeroTier</span>}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

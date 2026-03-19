@@ -2201,6 +2201,410 @@
       "dangerous_script_extensions": [
         "dll"
       ]
+    },
+    {
+      "id": "rimworld",
+      "label": "RimWorld",
+      "family": "rimworld",
+      "icon": "target",
+      "color": "text-yellow-500",
+      "primary_color": "#eab308",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "C:\\Program Files (x86)\\Steam\\steamapps\\common\\RimWorld",
+                "D:\\SteamLibrary\\steamapps\\common\\RimWorld"
+              ],
+              "macos": [
+                "~/Library/Application Support/Steam/steamapps/common/RimWorld"
+              ],
+              "linux": [
+                "~/.steam/steam/steamapps/common/RimWorld"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": [
+          "Mods",
+          "Saves"
+        ]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "Mods",
+          "icon": "package",
+          "color": "text-yellow-500",
+          "folder": "Mods",
+          "extensions": [
+            "xml",
+            "dll",
+            "png",
+            "zip"
+          ],
+          "file_type": "Mod",
+          "syncable": true
+        },
+        {
+          "id": "saves",
+          "label": "Save Files",
+          "icon": "save",
+          "color": "text-status-green",
+          "folder": "Saves",
+          "extensions": [
+            "rws"
+          ],
+          "file_type": "Save",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": [
+        "dll"
+      ]
+    },
+    {
+      "id": "cities_skylines",
+      "label": "Cities: Skylines",
+      "family": "citiesskylines",
+      "icon": "building-2",
+      "color": "text-cyan-400",
+      "primary_color": "#22d3ee",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "%LOCALAPPDATA%\\Colossal Order\\Cities_Skylines"
+              ],
+              "macos": [
+                "~/Library/Application Support/Colossal Order/Cities_Skylines"
+              ],
+              "linux": [
+                "~/.local/share/Colossal Order/Cities_Skylines"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": [
+          "Addons/Mods",
+          "Addons/Assets",
+          "Saves"
+        ]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "Mods",
+          "icon": "package",
+          "color": "text-cyan-400",
+          "folder": "Addons/Mods",
+          "extensions": [
+            "dll",
+            "zip"
+          ],
+          "file_type": "Mod",
+          "syncable": true
+        },
+        {
+          "id": "assets",
+          "label": "Assets",
+          "icon": "boxes",
+          "color": "text-purple-400",
+          "folder": "Addons/Assets",
+          "extensions": [
+            "crp"
+          ],
+          "file_type": "CustomContent",
+          "syncable": true
+        },
+        {
+          "id": "saves",
+          "label": "Save Files",
+          "icon": "save",
+          "color": "text-status-green",
+          "folder": "Saves",
+          "extensions": [
+            "crp"
+          ],
+          "file_type": "Save",
+          "syncable": true
+        },
+        {
+          "id": "maps",
+          "label": "Maps",
+          "icon": "map",
+          "color": "text-amber-400",
+          "folder": "Addons/Maps",
+          "extensions": [
+            "crp"
+          ],
+          "file_type": "CustomContent",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": [
+        "dll"
+      ]
+    },
+    {
+      "id": "ets2",
+      "label": "Euro Truck Simulator 2",
+      "family": "ets2",
+      "icon": "truck",
+      "color": "text-red-400",
+      "primary_color": "#f87171",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "documents_relative",
+            "base": "",
+            "folders": [
+              "Euro Truck Simulator 2"
+            ]
+          },
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [],
+              "macos": [
+                "~/Library/Application Support/Euro Truck Simulator 2"
+              ],
+              "linux": [
+                "~/.local/share/Euro Truck Simulator 2"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": [
+          "mod",
+          "profiles"
+        ]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "Mods",
+          "icon": "package",
+          "color": "text-red-400",
+          "folder": "mod",
+          "extensions": [
+            "scs",
+            "zip"
+          ],
+          "file_type": "Mod",
+          "syncable": true
+        },
+        {
+          "id": "profiles",
+          "label": "Profiles",
+          "icon": "user",
+          "color": "text-purple-400",
+          "folder": "profiles",
+          "extensions": [
+            "sii",
+            "cfg",
+            "txt"
+          ],
+          "file_type": "Save",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": []
+    },
+    {
+      "id": "factorio",
+      "label": "Factorio",
+      "family": "factorio",
+      "icon": "cog",
+      "color": "text-orange-400",
+      "primary_color": "#fb923c",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "%APPDATA%\\Factorio"
+              ],
+              "macos": [
+                "~/Library/Application Support/factorio"
+              ],
+              "linux": [
+                "~/.factorio"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": [
+          "mods",
+          "saves"
+        ]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "Mods",
+          "icon": "package",
+          "color": "text-orange-400",
+          "folder": "mods",
+          "extensions": [
+            "zip"
+          ],
+          "file_type": "Mod",
+          "syncable": true
+        },
+        {
+          "id": "saves",
+          "label": "Save Files",
+          "icon": "save",
+          "color": "text-status-green",
+          "folder": "saves",
+          "extensions": [
+            "zip"
+          ],
+          "file_type": "Save",
+          "syncable": true
+        },
+        {
+          "id": "scenarios",
+          "label": "Scenarios",
+          "icon": "map",
+          "color": "text-sky-400",
+          "folder": "scenarios",
+          "extensions": [],
+          "file_type": "CustomContent",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": [
+        "lua"
+      ]
+    },
+    {
+      "id": "palworld",
+      "label": "Palworld",
+      "family": "palworld",
+      "icon": "paw-print",
+      "color": "text-blue-400",
+      "primary_color": "#60a5fa",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Palworld",
+                "D:\\SteamLibrary\\steamapps\\common\\Palworld"
+              ],
+              "macos": [],
+              "linux": [
+                "~/.steam/steam/steamapps/common/Palworld"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": [
+          "Pal/Content/Paks/LogicMods"
+        ]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "Mods",
+          "icon": "package",
+          "color": "text-blue-400",
+          "folder": "Pal/Content/Paks/LogicMods",
+          "extensions": [
+            "pak",
+            "ucas",
+            "utoc",
+            "zip"
+          ],
+          "file_type": "Mod",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": []
+    },
+    {
+      "id": "l4d2",
+      "label": "Left 4 Dead 2",
+      "family": "l4d2",
+      "icon": "biohazard",
+      "color": "text-red-500",
+      "primary_color": "#ef4444",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Left 4 Dead 2\\left4dead2",
+                "D:\\SteamLibrary\\steamapps\\common\\Left 4 Dead 2\\left4dead2"
+              ],
+              "macos": [
+                "~/Library/Application Support/Steam/steamapps/common/Left 4 Dead 2/left4dead2"
+              ],
+              "linux": [
+                "~/.steam/steam/steamapps/common/Left 4 Dead 2/left4dead2"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": [
+          "addons",
+          "cfg"
+        ]
+      },
+      "content_types": [
+        {
+          "id": "addons",
+          "label": "Addons & Maps",
+          "icon": "package",
+          "color": "text-red-500",
+          "folder": "addons",
+          "extensions": [
+            "vpk"
+          ],
+          "file_type": "Mod",
+          "syncable": true
+        },
+        {
+          "id": "configs",
+          "label": "Configs",
+          "icon": "settings",
+          "color": "text-txt-dim",
+          "folder": "cfg",
+          "extensions": [
+            "cfg"
+          ],
+          "file_type": "Config",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": []
     }
   ]
 }

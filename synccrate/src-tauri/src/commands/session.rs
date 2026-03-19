@@ -2,9 +2,34 @@ use crate::network::discovery;
 use crate::state::{AppState, PeerInfo, SessionInfo, SessionStatus, SessionType, SyncFolderPermissions};
 use crate::network::protocol::{self, Message};
 use rand::Rng;
+use std::net::UdpSocket;
 use std::sync::Arc;
 use tauri::Emitter;
 use tokio::sync::Mutex;
+
+/// Discover local IP addresses by probing common subnets.
+/// Returns IPs for all reachable interfaces (LAN, Tailscale, ZeroTier, etc.).
+fn get_local_ips() -> Vec<String> {
+    let targets = [
+        "8.8.8.8:80",        // default route (LAN IP)
+        "100.100.100.100:80", // Tailscale MagicDNS
+        "10.147.17.1:80",     // ZeroTier common
+    ];
+    let mut ips = Vec::new();
+    for target in &targets {
+        if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
+            if socket.connect(target).is_ok() {
+                if let Ok(addr) = socket.local_addr() {
+                    let ip = addr.ip().to_string();
+                    if ip != "0.0.0.0" && !ips.contains(&ip) {
+                        ips.push(ip);
+                    }
+                }
+            }
+        }
+    }
+    ips
+}
 
 /// Sanitize a display name: strip control chars, limit length.
 fn sanitize_name(name: &str) -> Result<String, String> {
@@ -236,6 +261,11 @@ pub async fn get_session_status(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
 ) -> Result<SessionStatus, String> {
     let app_state = state.lock().await;
+    let host_ips = if app_state.session_type == SessionType::Host {
+        get_local_ips()
+    } else {
+        vec![]
+    };
     Ok(SessionStatus {
         session_type: app_state.session_type.clone(),
         name: app_state.session_name.clone(),
@@ -243,6 +273,7 @@ pub async fn get_session_status(
         peers: app_state.peers(),
         is_syncing: app_state.is_any_syncing(),
         pin: app_state.session_pin.clone(),
+        host_ips,
     })
 }
 
