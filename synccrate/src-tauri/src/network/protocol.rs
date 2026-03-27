@@ -18,13 +18,29 @@ const SEND_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Message {
-    Hello { name: String, version: String, pin: Option<String> },
-    Welcome { name: String, version: String },
+    Hello {
+        name: String,
+        version: String,
+        pin: Option<String>,
+        #[serde(default)]
+        supports_compression: bool,
+    },
+    Welcome {
+        name: String,
+        version: String,
+        #[serde(default)]
+        supports_compression: bool,
+    },
     ManifestRequest,
     ManifestResponse { manifest: FileManifest },
     FileRequest { path: String },
     FileHeader { path: String, size: u64, hash: String },
-    FileChunk { data: String, offset: u64 },
+    FileChunk {
+        data: String,
+        offset: u64,
+        #[serde(default)]
+        compressed: bool,
+    },
     FileComplete { path: String },
     SyncComplete,
     Error { message: String },

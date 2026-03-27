@@ -151,7 +151,7 @@ async fn handle_client(
     };
 
     let (peer_name, peer_version, peer_pin) = match msg {
-        Message::Hello { name, version, pin } => {
+        Message::Hello { name, version, pin, .. } => {
             // Sanitize: truncate and strip control characters
             let sanitized = name.chars()
                 .filter(|c| !c.is_control())
@@ -197,6 +197,7 @@ async fn handle_client(
             &Message::Welcome {
                 name: our_name,
                 version: env!("CARGO_PKG_VERSION").to_string(),
+                supports_compression: false,
             },
         )
         .await?;
@@ -411,6 +412,7 @@ async fn handle_client(
                                 &Message::FileChunk {
                                     data: BASE64.encode(&buf[..n]),
                                     offset,
+                                    compressed: false,
                                 },
                             )
                             .await?;
@@ -535,6 +537,7 @@ pub async fn connect_to_host(
                 name: our_name,
                 version: env!("CARGO_PKG_VERSION").to_string(),
                 pin: pin.clone(),
+                supports_compression: false,
             },
         )
         .await?;
@@ -545,7 +548,7 @@ pub async fn connect_to_host(
         let mut s = stream.lock().await;
         let msg = protocol::recv_message(&mut *s).await?;
         match msg {
-            Message::Welcome { name, version } => (name, version),
+            Message::Welcome { name, version, .. } => (name, version),
             Message::Error { message } => return Err(message),
             _ => return Err("Expected Welcome message".to_string()),
         }
