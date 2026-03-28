@@ -28,6 +28,12 @@ export default function SyncBanner({ plan, onSync, onResolveAll }: SyncBannerPro
   const startBytesRef = useRef<number>(0);
   const [expanded, setExpanded] = useState(false);
   const [quickFilter, setQuickFilter] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(50);
+
+  // Reset visible count when plan changes or details expand
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [plan, expanded]);
 
   useEffect(() => {
     if (syncProgress && startTimeRef.current === null) {
@@ -235,7 +241,7 @@ export default function SyncBanner({ plan, onSync, onResolveAll }: SyncBannerPro
             ))}
           </div>
           <div className="max-h-48 overflow-y-auto space-y-0.5">
-            {plan.actions.map((action, i) => {
+            {plan.actions.slice(0, visibleCount).map((action, i) => {
               const path = action.SendToRemote?.relative_path
                 || action.ReceiveFromRemote?.relative_path
                 || action.Conflict?.local.relative_path
@@ -250,6 +256,14 @@ export default function SyncBanner({ plan, onSync, onResolveAll }: SyncBannerPro
                 />
               );
             })}
+            {plan.actions.length > visibleCount && (
+              <button
+                onClick={() => setVisibleCount((c) => c + 50)}
+                className="w-full text-center py-1.5 text-xs text-accent-light hover:text-accent transition-colors"
+              >
+                Show more ({plan.actions.length - visibleCount} remaining)
+              </button>
+            )}
           </div>
         </div>
       )}

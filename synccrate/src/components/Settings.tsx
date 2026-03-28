@@ -35,6 +35,7 @@ export default function Settings() {
     auto_backup_interval_hours: 4,
     auto_backup_max_count: 5,
   });
+  const [speedLimit, setSpeedLimit] = useState(0);
 
   // Only show games in the user's library
   const libraryGames = gameRegistry.filter((g) => myLibrary.includes(g.id));
@@ -50,6 +51,7 @@ export default function Settings() {
       setPathInputs(converted);
     }).catch(() => {});
     cmd.getExcludePatterns().then(setExcludePatterns).catch(() => {});
+    cmd.getTransferSpeedLimit().then(setSpeedLimit).catch(() => {});
   }, [setGamePaths, setExcludePatterns]);
 
   useEffect(() => {
@@ -391,6 +393,37 @@ export default function Settings() {
               />
             </div>
           )}
+        </div>
+      </div>
+
+      <p className="text-xs font-semibold text-txt-dim uppercase tracking-wider mb-2">Transfer</p>
+
+      <div className="bg-bg-card rounded-xl border border-border p-5 space-y-4">
+        <h3 className="font-semibold text-sm">Bandwidth Limit</h3>
+        <p className="text-xs text-txt-dim">
+          Limit transfer speed to avoid saturating your network. Set to Unlimited for maximum speed.
+        </p>
+        <div className="flex items-center justify-between">
+          <label className="text-sm">Max speed</label>
+          <select
+            value={speedLimit}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setSpeedLimit(val);
+              cmd.setTransferSpeedLimit(val).catch(console.error);
+            }}
+            aria-label="Transfer speed limit"
+            className="bg-bg border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-accent"
+          >
+            <option value={0}>Unlimited</option>
+            <option value={1048576}>1 MB/s</option>
+            <option value={2097152}>2 MB/s</option>
+            <option value={5242880}>5 MB/s</option>
+            <option value={10485760}>10 MB/s</option>
+            <option value={26214400}>25 MB/s</option>
+            <option value={52428800}>50 MB/s</option>
+            <option value={104857600}>100 MB/s</option>
+          </select>
         </div>
       </div>
 

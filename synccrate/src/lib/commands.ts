@@ -14,6 +14,7 @@ import type {
   SessionInfo,
   SessionStatus,
   SyncFolderPermissions,
+  SyncHistoryEntry,
   SyncPlan,
 } from "./types";
 
@@ -302,6 +303,26 @@ export async function setAutoBackupConfig(
     intervalHours,
     maxCount,
   });
+}
+
+// --- Transfer Speed Limit ---
+
+export async function getTransferSpeedLimit(): Promise<number> {
+  return invoke("get_transfer_speed_limit");
+}
+
+export async function setTransferSpeedLimit(limit: number): Promise<void> {
+  return invoke("set_transfer_speed_limit", { limit });
+}
+
+// --- Sync History ---
+
+export async function getSyncHistory(): Promise<SyncHistoryEntry[]> {
+  return invoke("get_sync_history");
+}
+
+export async function clearSyncHistory(): Promise<void> {
+  return invoke("clear_sync_history");
 }
 
 // --- Packs ---

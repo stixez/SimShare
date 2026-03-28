@@ -202,13 +202,13 @@ fn compute_file_hash(path: &std::path::Path) -> Result<String, String> {
     Ok(hex::encode(hasher.finalize()))
 }
 
-#[tauri::command]
-pub async fn scan_files(
-    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+/// Scan files for the active game, optionally computing hashes.
+/// This is the shared implementation used by both the Tauri command and internal callers.
+pub async fn scan_files_inner(
+    state: &Arc<Mutex<AppState>>,
     game: Option<String>,
-    quick: Option<bool>,
+    compute_hashes: bool,
 ) -> Result<FileManifest, String> {
-    let compute_hashes = !quick.unwrap_or(false);
     let (base_path, game_def) = {
         let mut app_state = state.lock().await;
         let game_id = match game {
@@ -292,6 +292,16 @@ pub async fn scan_files(
     let mut app_state = state.lock().await;
     app_state.local_manifest = manifest.clone();
     Ok(manifest)
+}
+
+#[tauri::command]
+pub async fn scan_files(
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+    game: Option<String>,
+    quick: Option<bool>,
+) -> Result<FileManifest, String> {
+    let compute_hashes = !quick.unwrap_or(false);
+    scan_files_inner(&*state, game, compute_hashes).await
 }
 
 #[tauri::command]

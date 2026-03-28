@@ -290,6 +290,7 @@ async fn handle_client(
     let mut clean_disconnect = false;
     let mut disconnect_reason = String::new();
     let mut peer_files_sent: u64 = 0;
+    let speed_limit = crate::commands::sync::get_speed_limit();
     loop {
         let msg = {
             let mut s = stream.lock().await;
@@ -310,6 +311,20 @@ async fn handle_client(
 
         match msg {
             Message::ManifestRequest => {
+                // Check if local manifest has empty hashes (from a quick scan)
+                let needs_rehash = {
+                    let app_state = state.lock().await;
+                    app_state.local_manifest.files.values().any(|f| f.hash.is_empty())
+                };
+
+                // Re-scan with full hashes if needed so the peer gets accurate data
+                if needs_rehash {
+                    log::info!("Re-scanning with hashes before sending manifest to peer '{}'", peer_name);
+                    if let Err(e) = crate::commands::files::scan_files_inner(&state, None, true).await {
+                        log::warn!("Failed to re-scan with hashes: {}", e);
+                    }
+                }
+
                 let manifest = {
                     let app_state = state.lock().await;
                     let perms = &app_state.folder_permissions;
@@ -442,6 +457,12 @@ async fn handle_client(
                         use tokio::io::AsyncSeekExt;
                         file.seek(std::io::SeekFrom::Start(0)).await.map_err(|e| e.to_string())?;
 
+                        // Throttling: track cumulative bytes since file start.
+                        // The expected/elapsed comparison handles multi-second windows
+                        // without needing periodic resets.
+                        let mut throttle_bytes = 0u64;
+                        let throttle_start = tokio::time::Instant::now();
+
                         loop {
                             let n = file.read(&mut buf).await.map_err(|e| e.to_string())?;
                             if n == 0 { break; }
@@ -465,6 +486,17 @@ async fn handle_client(
                             )
                             .await?;
                             offset += n as u64;
+
+                            // Apply bandwidth throttle (stream lock is held intentionally
+                            // for the entire file send to prevent chunk interleaving)
+                            if speed_limit > 0 {
+                                throttle_bytes += n as u64;
+                                let elapsed = throttle_start.elapsed();
+                                let expected = std::time::Duration::from_secs_f64(throttle_bytes as f64 / speed_limit as f64);
+                                if expected > elapsed {
+                                    tokio::time::sleep(expected - elapsed).await;
+                                }
+                            }
 
                             // Emit chunk progress to frontend
                             let _ = app.emit(
@@ -639,7 +671,17 @@ pub async fn connect_to_host(
     };
 
     // Send our manifest to the host so it knows our mod count
+    // Re-scan with hashes if the local manifest only has empty hashes (from quick scan)
     {
+        let needs_rehash = {
+            let app_state = state.lock().await;
+            app_state.local_manifest.files.values().any(|f| f.hash.is_empty())
+        };
+        if needs_rehash {
+            log::info!("Re-scanning with hashes before sending manifest to host");
+            let _ = crate::commands::files::scan_files_inner(&state, None, true).await;
+        }
+
         let app_state = state.lock().await;
         let manifest = app_state.local_manifest.clone();
         drop(app_state);

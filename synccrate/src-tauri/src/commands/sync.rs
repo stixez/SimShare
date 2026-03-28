@@ -378,6 +378,32 @@ async fn run_sync(
 
     delete_checkpoint();
 
+    // Record sync history
+    {
+        let app_state = state.lock().await;
+        let peer_name = app_state.connections.get(peer_id)
+            .map(|c| c.info.name.clone())
+            .unwrap_or_else(|| "Unknown".to_string());
+        let game = app_state.active_game.clone();
+        let has_receives = plan.actions.iter().any(|a| matches!(a, SyncAction::ReceiveFromRemote(_)));
+        let has_sends = plan.actions.iter().any(|a| matches!(a, SyncAction::SendToRemote(_)));
+        let direction = match (has_receives, has_sends) {
+            (true, true) => "bidirectional",
+            (true, false) => "received",
+            (false, true) => "sent",
+            _ => "none",
+        }.to_string();
+        append_sync_history(SyncHistoryEntry {
+            timestamp: crate::utils::timestamp_now(),
+            game,
+            peer_name,
+            files_synced: files_done,
+            total_bytes: plan.total_bytes,
+            errors: sync_errors.clone(),
+            direction,
+        });
+    }
+
     if !sync_errors.is_empty() {
         return Err(format!("{} file(s) failed to sync", sync_errors.len()));
     }
@@ -541,6 +567,9 @@ pub struct SyncConfig {
     pub auto_backup_interval_hours: u32,
     #[serde(default = "default_backup_max_count")]
     pub auto_backup_max_count: u32,
+    /// Transfer speed limit in bytes/sec. 0 = unlimited.
+    #[serde(default)]
+    pub transfer_speed_limit: u64,
 }
 
 fn default_backup_interval() -> u32 { 4 }
@@ -670,6 +699,102 @@ mod tests {
         assert!(glob_matches("Mods\\*", "Mods/file.package"));
         assert!(glob_matches("Mods/*", "Mods\\file.package"));
     }
+
+    // --- SyncConfig tests ---
+
+    #[test]
+    fn test_sync_config_default_has_zero_speed_limit() {
+        let config = SyncConfig::default();
+        assert_eq!(config.transfer_speed_limit, 0);
+        assert!(!config.auto_backup_before_sync);
+        assert!(!config.auto_backup_scheduled);
+        assert_eq!(config.auto_backup_interval_hours, 0); // default fn not called for Default trait
+    }
+
+    #[test]
+    fn test_sync_config_roundtrip_with_speed_limit() {
+        let config = SyncConfig {
+            exclude_patterns: vec!["*.tmp".to_string()],
+            auto_backup_before_sync: true,
+            auto_backup_scheduled: false,
+            auto_backup_interval_hours: 4,
+            auto_backup_max_count: 5,
+            transfer_speed_limit: 10_485_760, // 10 MB/s
+        };
+        let json = serde_json::to_string(&config).expect("serialize");
+        let parsed: SyncConfig = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed.transfer_speed_limit, 10_485_760);
+        assert_eq!(parsed.exclude_patterns, vec!["*.tmp"]);
+        assert!(parsed.auto_backup_before_sync);
+    }
+
+    #[test]
+    fn test_sync_config_missing_speed_limit_defaults_to_zero() {
+        // Simulates loading a config file from before speed limit was added
+        let json = r#"{"exclude_patterns": [], "auto_backup_before_sync": false}"#;
+        let config: SyncConfig = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(config.transfer_speed_limit, 0);
+    }
+
+    // --- SyncHistoryEntry tests ---
+
+    #[test]
+    fn test_sync_history_entry_roundtrip() {
+        let entry = SyncHistoryEntry {
+            timestamp: 1711548000,
+            game: "sims4".to_string(),
+            peer_name: "Alice".to_string(),
+            files_synced: 42,
+            total_bytes: 1073741824,
+            errors: vec![],
+            direction: "received".to_string(),
+        };
+        let json = serde_json::to_string(&entry).expect("serialize");
+        let parsed: SyncHistoryEntry = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed.game, "sims4");
+        assert_eq!(parsed.peer_name, "Alice");
+        assert_eq!(parsed.files_synced, 42);
+        assert_eq!(parsed.total_bytes, 1073741824);
+        assert!(parsed.errors.is_empty());
+        assert_eq!(parsed.direction, "received");
+    }
+
+    #[test]
+    fn test_sync_history_entry_with_errors() {
+        let entry = SyncHistoryEntry {
+            timestamp: 1711548000,
+            game: "terraria".to_string(),
+            peer_name: "Bob".to_string(),
+            files_synced: 10,
+            total_bytes: 5000,
+            errors: vec!["Mods/broken.tmod: hash mismatch".to_string()],
+            direction: "bidirectional".to_string(),
+        };
+        let json = serde_json::to_string(&entry).expect("serialize");
+        let parsed: SyncHistoryEntry = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed.errors.len(), 1);
+        assert!(parsed.errors[0].contains("hash mismatch"));
+    }
+
+    // --- SyncCheckpoint tests ---
+
+    #[test]
+    fn test_sync_checkpoint_roundtrip() {
+        let cp = SyncCheckpoint {
+            game: "sims4".to_string(),
+            peer_id: "abc-123".to_string(),
+            plan_hash: "deadbeef".to_string(),
+            completed_files: vec!["Mods/a.package".to_string(), "Mods/b.package".to_string()],
+            total_files: 10,
+            total_bytes: 50000,
+            started_at: 1711548000,
+        };
+        let json = serde_json::to_string(&cp).expect("serialize");
+        let parsed: SyncCheckpoint = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed.completed_files.len(), 2);
+        assert_eq!(parsed.plan_hash, "deadbeef");
+        assert_eq!(parsed.total_files, 10);
+    }
 }
 
 #[tauri::command]
@@ -706,4 +831,84 @@ pub async fn set_auto_backup_config(
     let path = crate::utils::sync_config_path();
     let data = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
     std::fs::write(&path, data).map_err(|e| e.to_string())
+}
+
+// --- Transfer speed limit ---
+
+#[tauri::command]
+pub async fn get_transfer_speed_limit() -> Result<u64, String> {
+    Ok(read_sync_config().transfer_speed_limit)
+}
+
+#[tauri::command]
+pub async fn set_transfer_speed_limit(limit: u64) -> Result<(), String> {
+    let mut config = read_sync_config();
+    config.transfer_speed_limit = limit;
+    let path = crate::utils::sync_config_path();
+    let data = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
+    std::fs::write(&path, data).map_err(|e| e.to_string())
+}
+
+/// Read the current transfer speed limit (called from transfer layer).
+pub fn get_speed_limit() -> u64 {
+    read_sync_config().transfer_speed_limit
+}
+
+// --- Sync history ---
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct SyncHistoryEntry {
+    pub timestamp: u64,
+    pub game: String,
+    pub peer_name: String,
+    pub files_synced: u64,
+    pub total_bytes: u64,
+    pub errors: Vec<String>,
+    pub direction: String,
+}
+
+fn sync_history_path() -> std::path::PathBuf {
+    let config = dirs::config_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
+    config.join("synccrate").join("sync_history.json")
+}
+
+pub fn append_sync_history(entry: SyncHistoryEntry) {
+    let path = sync_history_path();
+    let mut history: Vec<SyncHistoryEntry> = if path.exists() {
+        std::fs::read_to_string(&path)
+            .ok()
+            .and_then(|data| serde_json::from_str(&data).ok())
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+    history.push(entry);
+    // Keep last 100 entries
+    if history.len() > 100 {
+        history = history.split_off(history.len() - 100);
+    }
+    if let Ok(data) = serde_json::to_string_pretty(&history) {
+        let _ = std::fs::write(&path, data);
+    }
+}
+
+#[tauri::command]
+pub async fn get_sync_history() -> Result<Vec<SyncHistoryEntry>, String> {
+    let path = sync_history_path();
+    if path.exists() {
+        let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let history: Vec<SyncHistoryEntry> = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+        Ok(history)
+    } else {
+        Ok(Vec::new())
+    }
+}
+
+#[tauri::command]
+pub async fn clear_sync_history() -> Result<(), String> {
+    let path = sync_history_path();
+    if path.exists() {
+        std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }

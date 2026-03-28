@@ -171,6 +171,16 @@ export interface AutoBackupConfig {
   auto_backup_max_count: number;
 }
 
+export interface SyncHistoryEntry {
+  timestamp: number;
+  game: string;
+  peer_name: string;
+  files_synced: number;
+  total_bytes: number;
+  errors: string[];
+  direction: string;
+}
+
 export interface InstallResult {
   source: string;
   destination: string;
