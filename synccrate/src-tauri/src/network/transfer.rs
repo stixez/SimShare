@@ -697,6 +697,10 @@ pub async fn connect_to_host(
     let host_name_for_loop = host_name.clone();
     {
         let mut app_state = state.lock().await;
+        if !crate::commands::session::client_attempt_is_active(&app_state, peer_id) {
+            return Err("Connection attempt was cancelled or replaced".to_string());
+        }
+
         let info = crate::state::PeerInfo {
             id: peer_id.to_string(),
             name: host_name,
@@ -718,6 +722,7 @@ pub async fn connect_to_host(
                 supports_compression: host_supports_compression,
             },
         );
+        app_state.pending_client_peer_id = None;
     }
 
     // Emit peer-connected AFTER connection is stored so getSessionStatus() returns peers
@@ -818,6 +823,7 @@ async fn client_message_loop(
             app_state.session_type = crate::state::SessionType::None;
             app_state.session_name.clear();
             app_state.local_display_name.clear();
+            app_state.pending_client_peer_id = None;
         }
     }
 

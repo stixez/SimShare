@@ -41,6 +41,24 @@ fn sanitize_name(name: &str) -> Result<String, String> {
     Ok(trimmed.to_string())
 }
 
+pub(crate) fn client_attempt_is_active(state: &AppState, peer_id: &str) -> bool {
+    state.session_type == SessionType::Client
+        && state.pending_client_peer_id.as_deref() == Some(peer_id)
+}
+
+pub(crate) fn clear_failed_client_attempt_if_active(state: &mut AppState, peer_id: &str) -> bool {
+    if !client_attempt_is_active(state, peer_id) {
+        return false;
+    }
+
+    state.connections.remove(peer_id);
+    state.session_type = SessionType::None;
+    state.session_name.clear();
+    state.local_display_name.clear();
+    state.pending_client_peer_id = None;
+    true
+}
+
 #[tauri::command]
 pub async fn start_host(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
@@ -161,6 +179,7 @@ pub async fn connect_to_peer(
     app_state.session_name = peer.name.clone();
 
     let connection_peer_id = peer.id.clone();
+    app_state.pending_client_peer_id = Some(connection_peer_id.clone());
     let state_clone = state.inner().clone();
     drop(app_state);
 
@@ -178,13 +197,12 @@ pub async fn connect_to_peer(
         ).await {
             log::error!("Connection error: {}", e);
             let mut app_state = state_clone.lock().await;
-            app_state.session_type = SessionType::None;
-            app_state.session_name.clear();
-            app_state.connections.clear();
-            let _ = app_handle.emit(
-                "connection-failed",
-                serde_json::json!({"message": format!("{}", e)}),
-            );
+            if clear_failed_client_attempt_if_active(&mut app_state, &connection_peer_id) {
+                let _ = app_handle.emit(
+                    "connection-failed",
+                    serde_json::json!({"message": format!("{}", e)}),
+                );
+            }
         }
     });
 
@@ -218,6 +236,7 @@ pub async fn disconnect(
     app_state.session_type = SessionType::None;
     app_state.session_name.clear();
     app_state.local_display_name.clear();
+    app_state.pending_client_peer_id = None;
     app_state.session_pin = None;
     app_state.folder_permissions = SyncFolderPermissions::default();
     app_state.discovered_peers.clear();
@@ -302,6 +321,7 @@ pub async fn connect_by_ip(
     app_state.local_display_name = name;
 
     let peer_id = uuid::Uuid::new_v4().to_string();
+    app_state.pending_client_peer_id = Some(peer_id.clone());
     let state_clone = state.inner().clone();
     drop(app_state);
 
@@ -314,14 +334,12 @@ pub async fn connect_by_ip(
         ).await {
             log::error!("Direct IP connection error: {}", e);
             let mut app_state = state_clone.lock().await;
-            app_state.connections.remove(&connect_peer_id);
-            app_state.session_type = SessionType::None;
-            app_state.session_name.clear();
-            app_state.local_display_name.clear();
-            let _ = app_handle.emit(
-                "connection-failed",
-                serde_json::json!({"message": format!("{}", e)}),
-            );
+            if clear_failed_client_attempt_if_active(&mut app_state, &connect_peer_id) {
+                let _ = app_handle.emit(
+                    "connection-failed",
+                    serde_json::json!({"message": format!("{}", e)}),
+                );
+            }
         }
     });
 
@@ -363,4 +381,41 @@ pub async fn set_session_port(
     }
     app_state.session_port = port;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stale_failed_attempt_does_not_clear_replaced_client_session() {
+        let mut state = AppState::default();
+        state.session_type = SessionType::Client;
+        state.session_name = "Host B".to_string();
+        state.local_display_name = "Alice".to_string();
+        state.pending_client_peer_id = Some("new-attempt".to_string());
+
+        clear_failed_client_attempt_if_active(&mut state, "old-attempt");
+
+        assert_eq!(state.session_type, SessionType::Client);
+        assert_eq!(state.session_name, "Host B");
+        assert_eq!(state.local_display_name, "Alice");
+        assert_eq!(state.pending_client_peer_id.as_deref(), Some("new-attempt"));
+    }
+
+    #[test]
+    fn active_failed_attempt_clears_client_session() {
+        let mut state = AppState::default();
+        state.session_type = SessionType::Client;
+        state.session_name = "Host A".to_string();
+        state.local_display_name = "Alice".to_string();
+        state.pending_client_peer_id = Some("active-attempt".to_string());
+
+        clear_failed_client_attempt_if_active(&mut state, "active-attempt");
+
+        assert_eq!(state.session_type, SessionType::None);
+        assert!(state.session_name.is_empty());
+        assert!(state.local_display_name.is_empty());
+        assert!(state.pending_client_peer_id.is_none());
+    }
 }

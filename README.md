@@ -24,7 +24,7 @@
 
 - **Peer-to-peer at LAN speed** — Files transfer directly between computers at 100-900 MB/s. No cloud, no uploads, no waiting.
 - **Smart file diffing** — Compares SHA-256 hashes and only transfers what actually changed.
-- **43 games, 27 families** — Sims, WoW, Minecraft, Valheim, Terraria, Subnautica, KSP, and many more. Data-driven registry — adding a game is just JSON.
+- **46 games, 30 families** — Sims, WoW, Minecraft, Project Zomboid, Skyrim, Bannerlord, Valheim, Terraria, and many more. Data-driven registry — adding a game is just JSON.
 - **Transfer compression** — zstd compression reduces bandwidth by 50-80% for most mod types. Negotiated automatically between peers.
 - **Multi-peer sessions** — One host, multiple friends. Everyone syncs independently.
 - **Conflict resolution** — Keep yours, use theirs, or keep both — per file.
@@ -63,7 +63,7 @@ No cloud services. No accounts. No file uploads. Files move peer-to-peer at full
 
 ## Supported Games
 
-43 games across 27 families. Games are defined in a [JSON registry](synccrate/src-tauri/src/game_registry.json) — adding a game requires no code changes. See [Contributing](#contributing).
+46 games across 30 families. Games are defined in a [JSON registry](synccrate/src-tauri/src/game_registry.json) — adding a game requires no code changes. See [Contributing](#contributing).
 
 <details>
 <summary><strong>The Sims</strong> — 3 games</summary>
@@ -127,7 +127,7 @@ No cloud services. No accounts. No file uploads. Files move peer-to-peer at full
 </details>
 
 <details>
-<summary><strong>Other Games</strong> — 22 games</summary>
+<summary><strong>Other Games</strong> — 25 games</summary>
 
 | Game | Content Types | Auto-Detect |
 |------|--------------|:-----------:|
@@ -153,6 +153,9 @@ No cloud services. No accounts. No file uploads. Files move peer-to-peer at full
 | **Subnautica** | Mods (QMods), Saves | Yes |
 | **7 Days to Die** | Mods, Saves, Server Configs | Yes |
 | **Kerbal Space Program** | Mods, Saves, Ship Designs | Yes |
+| **Project Zomboid** | Mods, Saves | Yes |
+| **Skyrim Special Edition** | Mods & Plugins | Yes |
+| **Mount & Blade II: Bannerlord** | Modules | Yes |
 
 </details>
 
@@ -187,7 +190,7 @@ No cloud services. No accounts. No file uploads. Files move peer-to-peer at full
 |-|---------|-------------|
 | **P2P** | Peer-to-peer transfer | Files move directly between computers. Nothing leaves your network. |
 | **Multi** | Multi-peer sessions | One host, multiple clients. Each client syncs independently. |
-| **Games** | Multi-game support | 43 games across 27 families. Data-driven registry — adding games is just JSON. |
+| **Games** | Multi-game support | 46 games across 30 families. Data-driven registry — adding games is just JSON. |
 | **Zstd** | Transfer compression | zstd compression reduces bandwidth 50-80%. Negotiated per-peer, skips already-compressed files. |
 | **Auto** | Auto-backups | Back up before every sync or on a schedule. Old auto-backups pruned automatically. |
 | **Resume** | Sync resume | Interrupted syncs resume from where they left off. Checkpoint verified by plan hash. |
@@ -379,7 +382,7 @@ Yes. One person hosts, multiple friends join. Each client syncs independently wi
 
 <details>
 <summary><strong>Which games are supported?</strong></summary>
-SyncCrate ships with 43 games across 27 families, including The Sims, WoW, Minecraft, Valheim, Terraria, Subnautica, KSP, Call of Duty, Stronghold, TrackMania, Satisfactory, and more. Games are defined in a JSON registry — adding new games requires no code changes.
+SyncCrate ships with 46 games across 30 families, including The Sims, WoW, Minecraft, Project Zomboid, Skyrim Special Edition, Bannerlord, Valheim, Terraria, Subnautica, KSP, and more. Games are defined in a JSON registry — adding new games requires no code changes.
 </details>
 
 <details>

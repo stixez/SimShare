@@ -2841,6 +2841,181 @@
       "dangerous_script_extensions": [
         "dll"
       ]
+    },
+    {
+      "id": "project_zomboid",
+      "label": "Project Zomboid",
+      "family": "projectzomboid",
+      "icon": "trees",
+      "color": "text-emerald-400",
+      "primary_color": "#34d399",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "%USERPROFILE%\\Zomboid"
+              ],
+              "macos": [
+                "~/Zomboid"
+              ],
+              "linux": [
+                "~/.Zomboid"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": [
+          "mods",
+          "Saves"
+        ],
+        "auto_create_dirs": [
+          "mods",
+          "Saves"
+        ]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "Mods",
+          "icon": "package",
+          "color": "text-emerald-400",
+          "folder": "mods",
+          "extensions": [],
+          "file_type": "Mod",
+          "syncable": true
+        },
+        {
+          "id": "saves",
+          "label": "Save Files",
+          "icon": "save",
+          "color": "text-status-green",
+          "folder": "Saves",
+          "extensions": [],
+          "file_type": "Save",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": [
+        "lua",
+        "dll"
+      ]
+    },
+    {
+      "id": "skyrim_se",
+      "label": "Skyrim Special Edition",
+      "family": "skyrim",
+      "icon": "swords",
+      "color": "text-slate-300",
+      "primary_color": "#cbd5e1",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition",
+                "D:\\SteamLibrary\\steamapps\\common\\Skyrim Special Edition"
+              ],
+              "macos": [],
+              "linux": [
+                "~/.steam/steam/steamapps/common/Skyrim Special Edition"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": [
+          "Data"
+        ]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "Mods & Plugins",
+          "icon": "package",
+          "color": "text-slate-300",
+          "folder": "Data",
+          "extensions": [
+            "esm",
+            "esp",
+            "esl",
+            "bsa",
+            "ba2",
+            "pex",
+            "dll",
+            "ini",
+            "json",
+            "swf"
+          ],
+          "file_type": "Mod",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": [
+        "dll",
+        "pex"
+      ]
+    },
+    {
+      "id": "bannerlord",
+      "label": "Mount & Blade II: Bannerlord",
+      "family": "bannerlord",
+      "icon": "shield",
+      "color": "text-amber-400",
+      "primary_color": "#fbbf24",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Mount & Blade II Bannerlord",
+                "D:\\SteamLibrary\\steamapps\\common\\Mount & Blade II Bannerlord"
+              ],
+              "macos": [],
+              "linux": [
+                "~/.steam/steam/steamapps/common/Mount & Blade II Bannerlord"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": [
+          "Modules"
+        ]
+      },
+      "content_types": [
+        {
+          "id": "mods",
+          "label": "Modules",
+          "icon": "package",
+          "color": "text-amber-400",
+          "folder": "Modules",
+          "extensions": [
+            "dll",
+            "xml",
+            "json",
+            "png",
+            "jpg",
+            "txt",
+            "pak"
+          ],
+          "file_type": "Mod",
+          "syncable": true
+        }
+      ],
+      "dangerous_script_extensions": [
+        "dll"
+      ]
     }
   ]
 }
