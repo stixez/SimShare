@@ -32,7 +32,19 @@ fn load_hash_cache() -> HashCache {
 fn save_hash_cache(cache: &HashCache) {
     let path = utils::hash_cache_path();
     if let Ok(data) = serde_json::to_string(cache) {
-        let _ = std::fs::write(&path, data);
+        // Atomic write via a unique temp file + rename so a concurrent scan (e.g. the
+        // host warm-up scan racing an on-demand rehash) can't leave a half-written
+        // cache. The unique suffix avoids two writers clobbering the same temp file.
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let tmp = path.with_extension(format!("{}.tmp", unique));
+        if std::fs::write(&tmp, &data).is_ok() {
+            if std::fs::rename(&tmp, &path).is_err() {
+                let _ = std::fs::remove_file(&tmp);
+            }
+        }
     }
 }
 
@@ -209,34 +221,43 @@ pub async fn scan_files_inner(
     game: Option<String>,
     compute_hashes: bool,
 ) -> Result<FileManifest, String> {
-    let (base_path, game_def) = {
+    let (base_path, game_def, newly_detected) = {
         let mut app_state = state.lock().await;
         let game_id = match game {
             Some(ref g) => resolve_game(&app_state, g)?,
             None => app_state.active_game.clone(),
         };
-        let path = app_state
-            .game_paths
-            .get(&game_id)
-            .cloned()
-            .or_else(|| {
-                let detected = utils::detect_game_path_from_registry(&game_id, &app_state.game_registry);
-                if let Some(ref p) = detected {
-                    app_state.game_paths.insert(game_id.clone(), p.clone());
-                }
-                detected
-            })
-            .ok_or_else(|| {
-                format!(
-                    "{} path not found. Please set it manually.",
-                    app_state.game_label(&game_id)
-                )
-            })?;
+        let (path, newly_detected) = match app_state.game_paths.get(&game_id).cloned() {
+            Some(p) => (p, false),
+            None => {
+                let detected = utils::detect_game_path_from_registry(&game_id, &app_state.game_registry)
+                    .ok_or_else(|| {
+                        format!(
+                            "{} path not found. Please set it manually.",
+                            app_state.game_label(&game_id)
+                        )
+                    })?;
+                app_state.game_paths.insert(game_id.clone(), detected.clone());
+                (detected, true)
+            }
+        };
         let def = get_game_def(&app_state.game_registry, &game_id)
             .ok_or_else(|| format!("Game '{}' not found in registry", game_id))?
             .clone();
-        (path, def)
+        (path, def, newly_detected)
     };
+
+    // A just-auto-detected path bypasses set_game_path, which is where the game's
+    // expected content folders normally get created. Mirror that here so, e.g.,
+    // ReShade's reshade-presets/ folder exists on first detection rather than only
+    // when the user manually re-picks the path.
+    if newly_detected {
+        if let Some(val) = &game_def.validation {
+            for dir in &val.auto_create_dirs {
+                let _ = std::fs::create_dir_all(std::path::Path::new(&base_path).join(dir));
+            }
+        }
+    }
 
     let manifest = tokio::task::spawn_blocking(move || {
         let hash_cache = if compute_hashes { load_hash_cache() } else { HashMap::new() };

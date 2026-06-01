@@ -51,6 +51,9 @@ pub fn compute_diff(local: &FileManifest, remote: &FileManifest) -> SyncPlan {
 /// Drop them here so the plan reflects what will actually transfer.
 pub fn retain_pull_only(plan: &mut SyncPlan) {
     plan.actions.retain(|a| !matches!(a, SyncAction::SendToRemote(_)));
+    // Keep total_bytes self-consistent so this function is correct in isolation
+    // (and unit-testable). compute_sync_plan recomputes it again after its own
+    // permission/exclude filtering, so this value is transient in that path.
     plan.total_bytes = plan
         .actions
         .iter()
