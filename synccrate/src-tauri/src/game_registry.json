@@ -104,6 +104,76 @@
       }
     },
     {
+      "id": "sims4-reshade",
+      "label": "The Sims 4 (ReShade)",
+      "family": "sims",
+      "icon": "sun",
+      "color": "text-pink-400",
+      "primary_color": "#1ea84b",
+      "auto_detect": true,
+      "detection": {
+        "strategies": [
+          {
+            "type": "absolute_paths",
+            "paths": {
+              "windows": [
+                "%ProgramFiles%\\EA Games\\The Sims 4\\Game\\Bin",
+                "%ProgramFiles(x86)%\\Origin Games\\The Sims 4\\Game\\Bin",
+                "%ProgramFiles(x86)%\\Steam\\steamapps\\common\\The Sims 4\\Game\\Bin",
+                "%ProgramFiles%\\Steam\\steamapps\\common\\The Sims 4\\Game\\Bin"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {
+        "check_dirs": [
+          "reshade-presets"
+        ],
+        "auto_create_dirs": [
+          "reshade-presets"
+        ]
+      },
+      "content_types": [
+        {
+          "id": "reshade_presets",
+          "label": "ReShade Presets",
+          "icon": "sun",
+          "color": "text-pink-400",
+          "folder": "reshade-presets",
+          "extensions": [
+            "ini"
+          ],
+          "file_type": "ReShadePreset",
+          "syncable": true
+        },
+        {
+          "id": "reshade_shaders",
+          "label": "ReShade Shaders",
+          "icon": "layers",
+          "color": "text-cyan-400",
+          "folder": "reshade-shaders",
+          "extensions": [
+            "fx",
+            "fxh",
+            "png",
+            "jpg",
+            "jpeg",
+            "dds",
+            "bmp"
+          ],
+          "file_type": "ReShadeShader",
+          "syncable": true
+        }
+      ],
+      "path_correction": {
+        "known_subfolders": [
+          "reshade-presets",
+          "reshade-shaders"
+        ]
+      }
+    },
+    {
       "id": "sims3",
       "label": "The Sims 3",
       "family": "sims",

@@ -146,6 +146,47 @@ pub fn build_legacy_map(registry: &GameRegistry) -> HashMap<String, String> {
         .collect()
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_embedded_registry_deserializes() {
+        // Panics via expect() if the embedded JSON is malformed or doesn't match
+        // the structs — guards against a bad game_registry.json edit.
+        let registry = load_registry();
+        assert!(!registry.games.is_empty());
+        // IDs must be unique.
+        let mut ids: Vec<&str> = registry.games.iter().map(|g| g.id.as_str()).collect();
+        let count = ids.len();
+        ids.sort();
+        ids.dedup();
+        assert_eq!(ids.len(), count, "duplicate game ids in registry");
+    }
+
+    #[test]
+    fn test_sims4_reshade_entry() {
+        let registry = load_registry();
+        let rs = registry
+            .games
+            .iter()
+            .find(|g| g.id == "sims4-reshade")
+            .expect("sims4-reshade entry missing");
+        assert_eq!(rs.family, "sims");
+        // Uses absolute-path detection (Bin folder lives in the game install dir).
+        let detection = rs.detection.as_ref().expect("detection missing");
+        assert!(detection
+            .strategies
+            .iter()
+            .any(|s| matches!(s, DetectionStrategy::AbsolutePaths { .. })));
+        // Presets + shaders content types, both syncable.
+        let ct_ids: Vec<&str> = rs.content_types.iter().map(|c| c.id.as_str()).collect();
+        assert!(ct_ids.contains(&"reshade_presets"));
+        assert!(ct_ids.contains(&"reshade_shaders"));
+        assert!(rs.content_types.iter().all(|c| c.syncable));
+    }
+}
+
 /// Resolve a game ID, accepting both new IDs and legacy enum variant names.
 pub fn resolve_game_id(
     id: &str,
