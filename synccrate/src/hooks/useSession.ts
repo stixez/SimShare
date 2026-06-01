@@ -7,6 +7,7 @@ import * as cmd from "../lib/commands";
 export function useSession() {
   const [isLoading, setIsLoading] = useState(false);
   const setSession = useAppStore((s) => s.setSession);
+  const setIsConnecting = useAppStore((s) => s.setIsConnecting);
   const setDiscoveredPeers = useAppStore((s) => s.setDiscoveredPeers);
   const setSyncPlan = useAppStore((s) => s.setSyncPlan);
   const setSyncProgress = useAppStore((s) => s.setSyncProgress);
@@ -39,15 +40,21 @@ export function useSession() {
     }
   };
 
+  // connectToPeer / connectByIp return immediately — the actual handshake runs in
+  // the background. We must NOT mark the session "connected" here; the real session
+  // is set when the `peer-connected` event fires (handled in useTauriEvents), and a
+  // `connection-failed` event clears the connecting state on failure. Setting it
+  // optimistically here previously let users sync into an empty connection
+  // ("no active connections").
   const connectTo = async (peerId: string, pin?: string) => {
     setIsLoading(true);
+    setIsConnecting(true);
+    addLog("Connecting to host...", "info");
     try {
       await cmd.connectToPeer(peerId, pin);
-      const status = await cmd.getSessionStatus();
-      setSession(status);
-      addLog("Connected to host", "success");
     } catch (e: any) {
       addLog(`Failed to connect: ${e}`, "error");
+      setIsConnecting(false);
     } finally {
       setIsLoading(false);
     }
@@ -55,13 +62,13 @@ export function useSession() {
 
   const connectByIp = async (ip: string, port: number, name: string, pin?: string) => {
     setIsLoading(true);
+    setIsConnecting(true);
+    addLog(`Connecting to ${ip}:${port}...`, "info");
     try {
-      addLog(`Connecting to ${ip}:${port}...`, "info");
       await cmd.connectByIp(ip, port, name, pin);
-      const status = await cmd.getSessionStatus();
-      setSession(status);
     } catch (e: any) {
       addLog(`Failed to connect: ${e}`, "error");
+      setIsConnecting(false);
     } finally {
       setIsLoading(false);
     }
@@ -72,6 +79,7 @@ export function useSession() {
     try {
       await cmd.disconnect();
       setSession(null);
+      setIsConnecting(false);
       setDiscoveredPeers([]);
       setSyncPlan(null);
       setSyncProgress(null);

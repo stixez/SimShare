@@ -65,6 +65,10 @@ pub async fn compute_sync_plan(
 
     let mut plan = diff::compute_diff(&app_state.local_manifest, remote);
 
+    // Pull-only model: drop SendToRemote actions (uploads to the host aren't
+    // supported by the transfer protocol). Clients download; the host serves.
+    diff::retain_pull_only(&mut plan);
+
     // Filter out actions for content types disabled by host permissions
     let perms = &app_state.folder_permissions;
     let game_def = app_state.game_registry.games.iter()

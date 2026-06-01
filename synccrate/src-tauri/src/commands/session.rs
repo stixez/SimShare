@@ -110,6 +110,20 @@ pub async fn start_host(
         app_state.folder_permissions = allowed_folders.unwrap_or_default();
     }
 
+    // Warm the hash cache in the background so the first client's manifest request
+    // (and the file transfers that follow) hit cached hashes instead of triggering a
+    // slow full-folder SHA-256 pass during the handshake — which previously timed out
+    // the joining peer on large folders (e.g. big Sims 4 Mods directories).
+    {
+        let warm_state = state.inner().clone();
+        tokio::spawn(async move {
+            match crate::commands::files::scan_files_inner(&warm_state, None, true).await {
+                Ok(m) => log::info!("Host hash cache warmed ({} files)", m.files.len()),
+                Err(e) => log::warn!("Background hash warm-up failed: {}", e),
+            }
+        });
+    }
+
     // Start mDNS broadcast in background
     let app_handle = app.clone();
     let host_name = name.clone();

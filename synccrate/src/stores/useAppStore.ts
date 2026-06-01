@@ -47,6 +47,10 @@ interface AppState {
   session: SessionStatus | null;
   setSession: (session: SessionStatus | null) => void;
 
+  // True while a join/connect handshake is in flight (before peer-connected fires)
+  isConnecting: boolean;
+  setIsConnecting: (connecting: boolean) => void;
+
   discoveredPeers: PeerInfo[];
   setDiscoveredPeers: (peers: PeerInfo[]) => void;
 
@@ -140,6 +144,9 @@ export const useAppStore = create<AppState>((set) => ({
 
   session: null,
   setSession: (session) => set({ session }),
+
+  isConnecting: false,
+  setIsConnecting: (connecting) => set({ isConnecting: connecting }),
 
   discoveredPeers: [],
   setDiscoveredPeers: (peers) => set({ discoveredPeers: peers }),

@@ -404,28 +404,58 @@ async fn handle_client(
 
                 match tokio::fs::File::open(&full_path).await {
                     Ok(mut file) => {
-                        // Get file size for the header
+                        // Get file size + mtime for the header / cache check
                         let metadata = file.metadata().await.map_err(|e| e.to_string())?;
                         let file_size = metadata.len();
+                        let file_mtime = metadata
+                            .modified()
+                            .ok()
+                            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                            .map(|d| d.as_secs())
+                            .unwrap_or(0);
 
                         // Determine if compression should be used for this file
                         let compress_this_file = use_compression
                             && file_size >= MIN_COMPRESS_SIZE
                             && !should_skip_compression(&path);
 
-                        // Stream file: read in 64KB chunks, hash incrementally, send immediately
                         let chunk_size = 65536;
                         let mut buf = vec![0u8; chunk_size];
-                        let mut hasher = Sha256::new();
                         let mut offset = 0u64;
 
-                        // First pass: compute hash by streaming through the file
-                        loop {
-                            let n = file.read(&mut buf).await.map_err(|e| e.to_string())?;
-                            if n == 0 { break; }
-                            hasher.update(&buf[..n]);
-                        }
-                        let hash = hex::encode(hasher.finalize());
+                        // Reuse the hash computed during scanning when the file is
+                        // unchanged (same size + mtime). Re-hashing the whole file on
+                        // every request meant a second full read; for large files that
+                        // could exceed the requester's read timeout and abort the sync.
+                        let cached_hash = {
+                            let app_state = state.lock().await;
+                            app_state.local_manifest.files.get(&path).and_then(|info| {
+                                if info.size == file_size
+                                    && info.modified == file_mtime
+                                    && !info.hash.is_empty()
+                                {
+                                    Some(info.hash.clone())
+                                } else {
+                                    None
+                                }
+                            })
+                        };
+
+                        let hash = match cached_hash {
+                            Some(h) => h,
+                            None => {
+                                // Cache miss/stale: compute by streaming once, then rewind.
+                                use tokio::io::AsyncSeekExt;
+                                let mut hasher = Sha256::new();
+                                loop {
+                                    let n = file.read(&mut buf).await.map_err(|e| e.to_string())?;
+                                    if n == 0 { break; }
+                                    hasher.update(&buf[..n]);
+                                }
+                                file.seek(std::io::SeekFrom::Start(0)).await.map_err(|e| e.to_string())?;
+                                hex::encode(hasher.finalize())
+                            }
+                        };
 
                         // Send header with known size and hash
                         let mut s = stream.lock().await;
@@ -452,11 +482,8 @@ async fn handle_client(
                             }),
                         );
 
-                        // Second pass: re-read and send chunks
-                        // Seek back to start
-                        use tokio::io::AsyncSeekExt;
-                        file.seek(std::io::SeekFrom::Start(0)).await.map_err(|e| e.to_string())?;
-
+                        // Send file content (file is positioned at the start: either
+                        // freshly opened with a cached hash, or rewound after hashing).
                         // Throttling: track cumulative bytes since file start.
                         // The expected/elapsed comparison handles multi-second windows
                         // without needing periodic resets.
@@ -658,7 +685,15 @@ pub async fn connect_to_host(
 
         let mut host_gi: Option<GameInfo> = None;
         loop {
-            let msg = protocol::recv_message(&mut *s).await?;
+            // The host may hash a large content folder before replying, which can
+            // take well over the default per-message timeout. Wait generously here
+            // so a slow first scan doesn't drop the connection mid-handshake.
+            let msg = match protocol::try_recv_message(&mut *s, std::time::Duration::from_secs(300)).await? {
+                Some(m) => m,
+                None => return Err(
+                    "Timed out waiting for host manifest — the host may be scanning a very large folder. Try again in a moment.".to_string()
+                ),
+            };
             match msg {
                 Message::ManifestResponse { manifest } => break (manifest, host_gi),
                 Message::GameInfoExchange { game_info } => {

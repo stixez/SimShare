@@ -144,6 +144,7 @@ export function useTauriEvents() {
         }),
         listen<{ name: string }>("peer-connected", async (event) => {
           cancelRetry();
+          useAppStore.getState().setIsConnecting(false);
           addLog(`Peer connected: ${event.payload.name}`, "success");
           sendNotification("SyncCrate", `${event.payload.name} connected`);
           try {
@@ -195,6 +196,7 @@ export function useTauriEvents() {
             addLog("This is usually a firewall issue. The HOST must allow SyncCrate through Windows Firewall (both Private and Public networks). See the connection guide below for steps.", "warning");
           }
           setIsScanning(false);
+          useAppStore.getState().setIsConnecting(false);
           setSession(null);
         }),
         listen<{ file: string; bytes_sent: number; bytes_total: number; files_done: number; files_total: number }>(

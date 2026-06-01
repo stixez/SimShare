@@ -41,6 +41,28 @@ pub fn compute_diff(local: &FileManifest, remote: &FileManifest) -> SyncPlan {
     }
 }
 
+/// Remove actions that cannot execute in the pull-only transfer model and
+/// recompute `total_bytes`.
+///
+/// SyncCrate's file transfer is pull-only: the host serves files and clients
+/// download them. `SendToRemote` (pushing a client's local-only files up to the
+/// host) has no protocol support — the host never requests files — so leaving
+/// those actions in the plan would report "uploads" that silently never happen.
+/// Drop them here so the plan reflects what will actually transfer.
+pub fn retain_pull_only(plan: &mut SyncPlan) {
+    plan.actions.retain(|a| !matches!(a, SyncAction::SendToRemote(_)));
+    plan.total_bytes = plan
+        .actions
+        .iter()
+        .map(|a| match a {
+            SyncAction::ReceiveFromRemote(f) => f.size,
+            SyncAction::Conflict { local, remote } => local.size.max(remote.size),
+            SyncAction::SendToRemote(f) => f.size,
+            SyncAction::Delete(_) => 0,
+        })
+        .sum();
+}
+
 /// Compute a deterministic hash of a sync plan's actions.
 /// Used to detect if the plan has changed between sessions.
 pub fn compute_plan_hash(plan: &SyncPlan) -> String {
@@ -129,6 +151,43 @@ mod tests {
         assert_eq!(plan.actions.len(), 1);
         assert!(matches!(&plan.actions[0], SyncAction::Conflict { .. }));
         assert_eq!(plan.total_bytes, 2000); // max(1000, 2000)
+    }
+
+    #[test]
+    fn test_retain_pull_only_drops_uploads() {
+        // local has an extra file (would be SendToRemote), remote has one we lack
+        // (ReceiveFromRemote), plus a differing file (Conflict).
+        let local = make_manifest(vec![
+            make_file("Mods/local_only.package", "h_local", 4000),
+            make_file("Mods/conflict.package", "h_a", 1000),
+        ]);
+        let remote = make_manifest(vec![
+            make_file("Mods/remote_only.package", "h_remote", 3000),
+            make_file("Mods/conflict.package", "h_b", 2000),
+        ]);
+        let mut plan = compute_diff(&local, &remote);
+        // Before filtering: receive + send + conflict
+        assert!(plan.actions.iter().any(|a| matches!(a, SyncAction::SendToRemote(_))));
+
+        retain_pull_only(&mut plan);
+
+        // No uploads remain
+        assert!(!plan.actions.iter().any(|a| matches!(a, SyncAction::SendToRemote(_))));
+        // Receive + conflict remain
+        assert_eq!(plan.actions.len(), 2);
+        // total_bytes = receive(3000) + conflict max(1000,2000)=2000
+        assert_eq!(plan.total_bytes, 5000);
+    }
+
+    #[test]
+    fn test_retain_pull_only_keeps_receives_and_conflicts() {
+        let local = make_manifest(vec![]);
+        let remote = make_manifest(vec![make_file("Mods/a.package", "h", 500)]);
+        let mut plan = compute_diff(&local, &remote);
+        retain_pull_only(&mut plan);
+        assert_eq!(plan.actions.len(), 1);
+        assert!(matches!(&plan.actions[0], SyncAction::ReceiveFromRemote(_)));
+        assert_eq!(plan.total_bytes, 500);
     }
 
     #[test]

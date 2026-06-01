@@ -21,6 +21,7 @@ interface Props {
 
 export default function GameDashboard({ gameId }: Props) {
   const session = useAppStore((s) => s.session);
+  const isConnecting = useAppStore((s) => s.isConnecting);
   const manifest = useAppStore((s) => s.manifest);
   const setManifest = useAppStore((s) => s.setManifest);
   const syncPlan = useAppStore((s) => s.syncPlan);
@@ -153,6 +154,16 @@ export default function GameDashboard({ gameId }: Props) {
           <p className="text-txt-dim">Sync your files with friends over LAN</p>
         </div>
 
+        {isConnecting && (
+          <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center gap-3">
+            <RefreshCw size={18} className="animate-spin text-accent-light shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Connecting to host…</p>
+              <p className="text-xs text-txt-dim mt-0.5">Finishing the handshake. A large mod folder can take a moment to scan on the host.</p>
+            </div>
+          </div>
+        )}
+
         {!gamePaths[gameId] && (
           <div className="bg-status-yellow/10 border border-status-yellow/30 rounded-xl p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-status-yellow/20 flex items-center justify-center shrink-0">
@@ -241,7 +252,7 @@ export default function GameDashboard({ gameId }: Props) {
             </div>
             <button
               onClick={() => host(hostName.trim() || "Host", usePin, folderPerms)}
-              disabled={isLoading}
+              disabled={isLoading || isConnecting}
               className="w-full bg-accent hover:bg-accent-light text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
             >
               {isLoading ? "Starting..." : "Start Hosting"}
@@ -258,7 +269,7 @@ export default function GameDashboard({ gameId }: Props) {
             <p className="text-txt-dim text-sm mb-4">Connect to a host on your network and sync files.</p>
             <button
               onClick={() => join(hostName.trim() || "Guest")}
-              disabled={isLoading}
+              disabled={isLoading || isConnecting}
               className="w-full bg-status-green/20 hover:bg-status-green/30 text-status-green rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 mb-3"
             >
               {isLoading ? "Scanning..." : "Scan for Hosts"}
@@ -276,7 +287,7 @@ export default function GameDashboard({ gameId }: Props) {
                         connectTo(peer.id);
                       }
                     }}
-                    disabled={isLoading}
+                    disabled={isLoading || isConnecting}
                     className="w-full flex items-center justify-between bg-bg rounded-lg px-3 py-2 text-sm hover:bg-bg-card-hover transition-colors disabled:opacity-50"
                   >
                     <span className="flex items-center gap-1.5">
@@ -364,10 +375,10 @@ export default function GameDashboard({ gameId }: Props) {
                       const port = parseInt(manualPort) || 9847;
                       connectByIp(manualIp, port, hostName.trim() || "Guest", manualPin || undefined);
                     }}
-                    disabled={!manualIp || isLoading}
+                    disabled={!manualIp || isLoading || isConnecting}
                     className="w-full bg-accent/20 hover:bg-accent/30 text-accent-light rounded-lg px-4 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
                   >
-                    {isLoading ? "Connecting..." : "Connect by IP"}
+                    {isLoading || isConnecting ? "Connecting..." : "Connect by IP"}
                   </button>
                 </div>
               )}
@@ -432,9 +443,11 @@ export default function GameDashboard({ gameId }: Props) {
             <RefreshCw size={14} className={isScanning ? "animate-spin" : ""} />
             Scan Files
           </button>
-          <button onClick={computePlan} disabled={isSyncLoading} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-sm transition-colors disabled:opacity-50">
-            {isSyncLoading ? (loadingPhase || "Computing...") : "Compare & Sync"}
-          </button>
+          {isClient && (
+            <button onClick={computePlan} disabled={isSyncLoading} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-sm transition-colors disabled:opacity-50">
+              {isSyncLoading ? (loadingPhase || "Computing...") : "Compare & Sync"}
+            </button>
+          )}
           {gamePaths[gameId] && (
             <button onClick={() => cmd.openFolder(gamePaths[gameId]!)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg-card border border-border hover:bg-bg-card-hover text-sm transition-colors">
               <FolderOpen size={14} />
@@ -494,7 +507,7 @@ export default function GameDashboard({ gameId }: Props) {
         <div className="bg-bg-card rounded-xl border border-border p-3">
           <div className="flex items-center gap-2 mb-2">
             <Globe size={14} className="text-txt-dim" />
-            <span className="text-xs text-txt-dim">Share one of these with friends to connect:</span>
+            <span className="text-xs text-txt-dim">Share one of these with friends to connect — they'll download your files from here:</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {session.host_ips.map((ip) => (
