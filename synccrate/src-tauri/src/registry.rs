@@ -185,6 +185,16 @@ mod tests {
         assert!(ct_ids.contains(&"reshade_shaders"));
         assert!(rs.content_types.iter().all(|c| c.syncable));
     }
+
+    #[test]
+    fn registry_includes_recent_game_additions() {
+        let registry = load_registry();
+        let ids: Vec<_> = registry.games.iter().map(|g| g.id.as_str()).collect();
+
+        assert!(ids.contains(&"project_zomboid"));
+        assert!(ids.contains(&"skyrim_se"));
+        assert!(ids.contains(&"bannerlord"));
+    }
 }
 
 /// Resolve a game ID, accepting both new IDs and legacy enum variant names.
@@ -197,19 +207,4 @@ pub fn resolve_game_id(
         return Some(id.to_string());
     }
     legacy_map.get(id).cloned()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn registry_includes_recent_game_additions() {
-        let registry = load_registry();
-        let ids: Vec<_> = registry.games.iter().map(|g| g.id.as_str()).collect();
-
-        assert!(ids.contains(&"project_zomboid"));
-        assert!(ids.contains(&"skyrim_se"));
-        assert!(ids.contains(&"bannerlord"));
-    }
 }
